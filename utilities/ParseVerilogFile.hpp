@@ -8,13 +8,21 @@
 
 class ParseVerilogFile
 {
-public:    
-    void ParseFile(std::string const &sFileName);
-    std::vector<std::string> ExtractPortNames(FileHandler &VerilogFile);
-    std::vector<std::string> ExtractPortNames(FileHandler &VerilogFile, std::string const &sPortsFromString);
-    void ExtractGate(FileHandler &VerilogFile, std::string const &sInput);
+private:
+    FileHandler m_VerilogFile;
+
+    std::string ParseNextLine();
     bool IsGate(std::string const &sLine);
-    std::string ParseNextLine(FileHandler &VerilogFile);
+    std::vector<std::string> ExtractPortNames(std::string const &sPortsFromString);
+public:
+
+    explicit ParseVerilogFile(std::string const sFileName) : m_VerilogFile(sFileName) { ParseFile(); }
+   ~ParseVerilogFile(){}
+
+    void ParseFile();
+    void ExtractGateData();
+    void ExtractVerilogData();
+    void ExtractModulePorts();
 };
 
 #endif
