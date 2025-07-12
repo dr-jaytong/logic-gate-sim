@@ -8,6 +8,5 @@ int main(int argc, char *argv[])
     CLI.RegisterArgument("--filename", "STRING", true);
     CLI.Parse(argc, argv);
 
-    ParseVerilogFile verilog;
-    verilog.ParseFile(CLI.GetValue("--filename"));
+    ParseVerilogFile verilog(CLI.GetValue("--filename"));;
 }
