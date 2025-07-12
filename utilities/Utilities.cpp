@@ -1,5 +1,4 @@
 #include "Utilities.hpp"
-#include <iostream>
 #include <sstream>
 #include <algorithm>
 
@@ -25,7 +24,6 @@ std::string StripString(std::string const &sLine, std::vector<char> const &vPatt
 {
     std::string sCleanLine(sLine);
     for (auto const &sPattern : vPatterns) {
-        std::cout << "################# stripping : " << sPattern << std::endl;
         sCleanLine = StripString(sCleanLine, sPattern);
 
     }
@@ -37,9 +35,7 @@ std::string StripString(std::string const &sLine, std::vector<char> const &vPatt
 std::string StripString(std::string const &sLine, char const &cDelimeter)
 {
     std::string sCleanLine(sLine);
-    std::cout << "Before: \'" <<  sCleanLine << "\'" << std::endl;
     sCleanLine.erase(std::remove(sCleanLine.begin(), sCleanLine.end(), cDelimeter), sCleanLine.end());
-    std::cout << "After: \'" << sCleanLine << "\'" << std::endl;
     return sCleanLine; 
 }
 
@@ -49,9 +45,7 @@ std::string StripString(std::string const &sLine, std::string const &sWordToRemo
     size_t const uiPos(sCleanLine.find(sWordToRemove));
 
     if (uiPos != std::string::npos) {
-        std::cout << "Before: \'" <<  sCleanLine << "\'" << std::endl;
         sCleanLine.erase(uiPos, sWordToRemove.length());
-        std::cout << "After: \'" << sCleanLine << "\'" << std::endl;
     }
 
     return sCleanLine;
