@@ -2,7 +2,7 @@
 #include <sstream>
 #include <algorithm>
 
-namespace Utilities {
+namespace Utility {
 
 std::string GetFirstWordFromLine(std::string const &sLine)
 {

@@ -2,7 +2,7 @@
 #include <vector>
 
 
-namespace Utilities
+namespace Utility
 {
     std::string GetFirstWordFromLine(std::string const &sLine);
     std::string StripString(std::string const &sLine, std::vector<char> const &vPatterns);
