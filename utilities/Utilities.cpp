@@ -23,11 +23,8 @@ std::string RemoveWhiteSpace(std::string const &sLine)
 std::string StripString(std::string const &sLine, std::vector<char> const &vPatterns)
 {
     std::string sCleanLine(sLine);
-    for (auto const &sPattern : vPatterns) {
+    for (auto const &sPattern : vPatterns) 
         sCleanLine = StripString(sCleanLine, sPattern);
-
-    }
-
 
     return sCleanLine;
 }
@@ -44,9 +41,8 @@ std::string StripString(std::string const &sLine, std::string const &sWordToRemo
     std::string sCleanLine(sLine);
     size_t const uiPos(sCleanLine.find(sWordToRemove));
 
-    if (uiPos != std::string::npos) {
+    if (uiPos != std::string::npos) 
         sCleanLine.erase(uiPos, sWordToRemove.length());
-    }
 
     return sCleanLine;
 }
