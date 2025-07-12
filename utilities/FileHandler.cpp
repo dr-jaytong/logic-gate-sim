@@ -15,6 +15,7 @@ FileHandler::FileHandler(std::string const &sFileName)
 
     std::cout << "Opening file: " << sFileName << std::endl;
     m_File.open(sFileName);
+    m_sLastLineParsed = "";
 }
 
 FileHandler::~FileHandler()
@@ -27,5 +28,7 @@ std::string FileHandler::GetNextLine()
 {
     std::string sFileLine;
     std::getline(m_File, sFileLine);
+    m_sLastLineParsed = sFileLine; // Storing last line that was parsed
+                                   // because getline will move the file pointer
     return sFileLine;
 }
