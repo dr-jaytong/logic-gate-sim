@@ -4,11 +4,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(filelist utilities/ParseVerilogFile.cpp
-             utilities/CommandLineInterface.cpp
+set(filelist utilities/CommandLineInterface.cpp
              utilities/FileHandler.cpp
              utilities/Utilities.cpp
              verilog_primitives/Verilog.cpp
+             verilog_primitives/ParseVerilogFile.cpp
              main.cpp
     )
 
