@@ -23,4 +23,6 @@ public:
     std::string GetNextLine();
 
     bool eof() const { return m_File.eof(); }
+    bool IsOpen() const { return m_File.is_open(); }
+    void Close() { m_File.close(); } 
 };
