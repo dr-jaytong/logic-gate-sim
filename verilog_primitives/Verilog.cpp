@@ -10,7 +10,7 @@ void Verilog::AddGate(Verilog::Gate const &inputGate)
     for (auto const &sInputPort : inputGate.m_vInputPortNames) {
         itFindWire = m_umWireName2GateOutput.find(sInputPort);
         if (itFindWire != m_umWireName2GateOutput.end()) 
-            itFindWire->second.m_vInputGates.push_back(inputGate.m_sGateIdentifier);
+            itFindWire->second.m_vOutgoingGates.push_back(inputGate.m_sGateIdentifier);
     
         std::unordered_map<std::string, Verilog::PrimaryInput>::iterator itFindPI;
         itFindPI = m_umInputPorts.find(sInputPort);
@@ -20,14 +20,14 @@ void Verilog::AddGate(Verilog::Gate const &inputGate)
     
     itFindWire = m_umWireName2GateOutput.find(inputGate.m_sOutputPortName);
     if (itFindWire != m_umWireName2GateOutput.end()) {
-        assert(itFindWire->second.m_sOutputGate.empty());
-        itFindWire->second.m_sOutputGate = inputGate.m_sOutputPortName;
+        assert(itFindWire->second.m_sIncomingGate.empty());
+        itFindWire->second.m_sIncomingGate = inputGate.m_sGateIdentifier;
     }
 
-    std::unordered_map<std::string, Verilog::PrimaryOutput>::iterator itFindPO;
+    std::unordered_map<std::string, Verilog::PrimaryOutput>::iterator itFindPO(m_umOutputPorts.find(inputGate.m_sOutputPortName));
     if (itFindPO != m_umOutputPorts.end()) {
         assert(itFindPO->second.m_sIncomingGate.empty()); // Make sure only one gate drives the PO
-        itFindPO->second.m_sIncomingGate = inputGate.m_sOutputPortName;
+        itFindPO->second.m_sIncomingGate = inputGate.m_sGateIdentifier;
     }
 
     if (!m_umGateID2Gates.insert({inputGate.m_sGateIdentifier, std::move(inputGate)}).second) 
@@ -55,8 +55,8 @@ void Verilog::Print()
     std::cout << "Stored Wires " << std::endl;
     for (auto const &PI : m_umWireName2GateOutput) {
         std::cout << "   Wire name: " << PI.first << std::endl;
-        std::cout << "   \t Gate that drives this wire: " << PI.second.m_sOutputGate << std::endl;
-        for (auto const &inputGate : PI.second.m_vInputGates)
+        std::cout << "   \t Gate that drives this wire: " << PI.second.m_sIncomingGate << std::endl;
+        for (auto const &inputGate : PI.second.m_vOutgoingGates)
             std::cout << "\t Gates rely on this wire: " << inputGate << std::endl;
     }
 

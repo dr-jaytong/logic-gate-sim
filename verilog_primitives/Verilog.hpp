@@ -51,31 +51,43 @@ public:
         PrimaryOutput(PrimaryOutput const &&RHS) : PortEntity(std::move(RHS)){}
     };
 
-    struct Wire {
-        std::string m_sWireName;
-        std::string m_sOutputGate; // The output gate that drives the value of the wire (should only be one)
-        std::vector<std::string> m_vInputGates; // The input gates that uses this wire as an input source (could be many)
-
-        explicit Wire(std::string const &sWireName) 
-            : m_sWireName(sWireName)
-            , m_sOutputGate()
-            , m_vInputGates() {}
+    struct Wire : public PortEntity {
+        explicit Wire(std::string const &sName)
+            : PortEntity(sName){}
 
        ~Wire(){}
 
-        Wire(Wire const &RHS) 
-            : m_sWireName(RHS.m_sWireName)
-            , m_sOutputGate(RHS.m_sOutputGate)
-            , m_vInputGates(RHS.m_vInputGates){}
-       
         Wire &operator=(Wire const &RHS) = delete;
 
-        Wire(Wire const &&RHS)
-            : m_sWireName(RHS.m_sWireName)
-            , m_sOutputGate(RHS.m_sOutputGate)
-            , m_vInputGates(std::move(RHS.m_vInputGates)){}
-
+        Wire(Wire const &RHS)  : PortEntity(std::move(RHS)){}
+        Wire(Wire const &&RHS) : PortEntity(std::move(RHS)){}
     };
+
+    ///struct Wire {
+    ///    std::string m_sWireName;
+    ///    std::string m_sOutputGate; // The output gate that drives the value of the wire (should only be one)
+    ///    std::vector<std::string> m_vInputGates; // The input gates that uses this wire as an input source (could be many)
+
+    ///    explicit Wire(std::string const &sWireName) 
+    ///        : m_sWireName(sWireName)
+    ///        , m_sOutputGate()
+    ///        , m_vInputGates() {}
+
+    ///   ~Wire(){}
+
+    ///    Wire(Wire const &RHS) 
+    ///        : m_sWireName(RHS.m_sWireName)
+    ///        , m_sOutputGate(RHS.m_sOutputGate)
+    ///        , m_vInputGates(RHS.m_vInputGates){}
+    ///   
+    ///    Wire &operator=(Wire const &RHS) = delete;
+
+    ///    Wire(Wire const &&RHS)
+    ///        : m_sWireName(RHS.m_sWireName)
+    ///        , m_sOutputGate(RHS.m_sOutputGate)
+    ///        , m_vInputGates(std::move(RHS.m_vInputGates)){}
+
+    ///};
 
     struct Gate {
         std::string m_sGateType;
@@ -117,7 +129,7 @@ private:
     std::unordered_map<std::string, PrimaryOutput> m_umOutputPorts;
 
     struct WireHash {
-        size_t operator()(Wire const &Wire) const { return std::hash<std::string>()(Wire.m_sWireName); }
+        size_t operator()(Wire const &Wire) const { return std::hash<std::string>()(Wire.m_sName); }
     };
 
 public:
