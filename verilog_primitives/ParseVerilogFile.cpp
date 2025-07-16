@@ -34,6 +34,30 @@ std::unordered_map<std::string, Verilog::Wire> ParseVerilogFile::ExtractWires(st
     return umWires;
 }
 
+std::unordered_map<std::string, Verilog::PrimaryInput> ParseVerilogFile::ExtractModuleInputs(std::string const &sPorts)
+{
+    std::string const sModulePortType(Utility::GetFirstWordFromLine(sPorts));
+    std::string const sModulePorts(Utility::StripString(sPorts, sModulePortType));
+
+    std::unordered_map<std::string, Verilog::PrimaryInput> umPrimaryInputs;
+    for (auto const &sPortName : ExtractPortNames(sModulePorts)) 
+        umPrimaryInputs.insert({sPortName, Verilog::PrimaryInput(sPortName)});
+
+    return umPrimaryInputs;
+}
+
+std::unordered_map<std::string, Verilog::PrimaryOutput> ParseVerilogFile::ExtractModuleOutputs(std::string const &sPorts)
+{
+    std::string const sModulePortType(Utility::GetFirstWordFromLine(sPorts));
+    std::string const sModulePorts(Utility::StripString(sPorts, sModulePortType));
+
+    std::unordered_map<std::string, Verilog::PrimaryOutput> umPrimaryOutputs;
+    for (auto const &sPortName : ExtractPortNames(sModulePorts)) 
+        umPrimaryOutputs.insert({sPortName, Verilog::PrimaryOutput(sPortName)});
+
+    return umPrimaryOutputs;
+}
+
 Verilog::Gate ParseVerilogFile::ExtractGateData(std::string const &sGateInfoFromString)
 {
     std::string sLogicGateInfo(sGateInfoFromString);
@@ -57,12 +81,6 @@ bool ParseVerilogFile::IsGate(std::string const &sKeyword)
            sKeyword == "not";
 }
 
-std::vector<std::string> ParseVerilogFile::ExtractModulePorts(std::string const &sPorts)//, FileHandler &VerilogFile)
-{
-    std::string const sModulePortType(Utility::GetFirstWordFromLine(sPorts));
-    std::string const sModulePorts(Utility::StripString(sPorts, sModulePortType));
-    return ExtractPortNames(sModulePorts);
-}
 
 void ParseVerilogFile::ParseFile(Verilog &VerilogModule, FileHandler &VerilogFile)
 {
@@ -84,17 +102,15 @@ void ParseVerilogFile::ParseFile(Verilog &VerilogModule, FileHandler &VerilogFil
             if (sLine.find(';') == std::string::npos) 
                 sLine += ParseNextLine(VerilogFile);
 
-            if (sKeyword == "input") {
-                std::vector<std::string> const vModulePorts(ExtractModulePorts(sLine));
-                VerilogModule.AddInputPorts(std::unordered_set<std::string>(vModulePorts.begin(), vModulePorts.end()));
-            } else if (sKeyword == "output") {
-                std::vector<std::string> const vModulePorts(ExtractModulePorts(sLine));
-                VerilogModule.AddOutputPorts(std::unordered_set<std::string>(vModulePorts.begin(), vModulePorts.end()));
-            } else if (sKeyword == "wire") {
+            if (sKeyword == "input") 
+                VerilogModule.AddInputPorts(ExtractModuleInputs(sLine)); 
+            else if (sKeyword == "output") 
+                VerilogModule.AddOutputPorts(ExtractModuleOutputs(sLine));
+            else if (sKeyword == "wire") 
                 VerilogModule.AddWires(ExtractWires(sLine));
-            } else if (IsGate(sKeyword)) {
+            else if (IsGate(sKeyword)) 
                 VerilogModule.AddGate(ExtractGateData(sLine));
-            }
+            
         }
     }
 }

@@ -6,23 +6,28 @@
 
 void Verilog::AddGate(Verilog::Gate const &inputGate) 
 {
-    std::unordered_map<std::string, Verilog::Wire>::iterator itFindWire;
+    std::unordered_map<std::string, Verilog::Wire>::iterator          itFindWire;
     for (auto const &sInputPort : inputGate.m_vInputPortNames) {
-        itFindWire = m_usWireName2GateOutput.find(sInputPort);
-        if (itFindWire != m_usWireName2GateOutput.end()) 
+        itFindWire = m_umWireName2GateOutput.find(sInputPort);
+        if (itFindWire != m_umWireName2GateOutput.end()) 
             itFindWire->second.m_vInputGates.push_back(inputGate.m_sGateIdentifier);
-     
-        //TODO : Map Primary Inputs to the gates that rely on them?
-        ///std::unordered_set<std::string>::iterator itFindPrimaryInput(m_usInputPorts.find(sInputPort));
-        ///if (itFindPrimaryInput != m_usInputPorts.end())
-        ///    std::cout << "Gate Inputport " << sInputPort << " is a primary input object" << std::endl;
-
+    
+        std::unordered_map<std::string, Verilog::PrimaryInput>::iterator itFindPI;
+        itFindPI = m_umInputPorts.find(sInputPort);
+        if (itFindPI != m_umInputPorts.end())
+            itFindPI->second.m_vOutgoingGates.push_back(inputGate.m_sGateIdentifier);
     }
     
-    itFindWire = m_usWireName2GateOutput.find(inputGate.m_sOutputPortName);
-    if (itFindWire != m_usWireName2GateOutput.end()) {
+    itFindWire = m_umWireName2GateOutput.find(inputGate.m_sOutputPortName);
+    if (itFindWire != m_umWireName2GateOutput.end()) {
         assert(itFindWire->second.m_sOutputGate.empty());
         itFindWire->second.m_sOutputGate = inputGate.m_sOutputPortName;
+    }
+
+    std::unordered_map<std::string, Verilog::PrimaryOutput>::iterator itFindPO;
+    if (itFindPO != m_umOutputPorts.end()) {
+        assert(itFindPO->second.m_sIncomingGate.empty()); // Make sure only one gate drives the PO
+        itFindPO->second.m_sIncomingGate = inputGate.m_sOutputPortName;
     }
 
     if (!m_umGateID2Gates.insert({inputGate.m_sGateIdentifier, std::move(inputGate)}).second) 
@@ -32,15 +37,23 @@ void Verilog::AddGate(Verilog::Gate const &inputGate)
 void Verilog::Print() 
 {
     std::cout << "Stored Primary Inputs " << std::endl;
-    for (auto const &PI : m_usInputPorts)
-        std::cout << PI << std::endl;
+    for (auto const &PI : m_umInputPorts) {
+        std::cout << "Primary input: \'" << PI.first << "\' ";
+        std::cout << "Stored depending gates on PI : ";
+        for (auto const &inputPort : PI.second.m_vOutgoingGates)
+            std::cout << inputPort << " ";
+        std::cout << std::endl;
+    }
 
     std::cout << "Stored Primary Outputs " << std::endl;
-    for (auto const &PI : m_usOutputPorts)
-        std::cout << PI << std::endl;
+    for (auto const &PO : m_umOutputPorts) {
+        std::cout << "Primary output: \'" << PO.first << "\' " << std::endl;
+        std::cout << "Stored gate driving the PO: ";
+        std::cout << PO.second.m_sIncomingGate << std::endl;
+    }
 
     std::cout << "Stored Wires " << std::endl;
-    for (auto const &PI : m_usWireName2GateOutput) {
+    for (auto const &PI : m_umWireName2GateOutput) {
         std::cout << "   Wire name: " << PI.first << std::endl;
         std::cout << "   \t Gate that drives this wire: " << PI.second.m_sOutputGate << std::endl;
         for (auto const &inputGate : PI.second.m_vInputGates)

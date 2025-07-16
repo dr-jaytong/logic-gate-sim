@@ -17,7 +17,8 @@ namespace ParseVerilogFile
     void ParseFile(Verilog &VerilogModule, FileHandler &VerilogFile);
     Verilog::Gate ExtractGateData(std::string const &sGateDataFromString); //(Verilog &VerilogModule, FileHandler &VerilogFile);
     void ExtractVerilogData(Verilog &VerilogModule, FileHandler &VerilogFile);
-    std::vector<std::string> ExtractModulePorts(std::string const &sPorts); //FileHandler &VerilogFile);
+    std::unordered_map<std::string, Verilog::PrimaryInput>  ExtractModuleInputs(std::string const &sPortNames);
+    std::unordered_map<std::string, Verilog::PrimaryOutput> ExtractModuleOutputs(std::string const &sPortNames);
 };
 
 #endif
