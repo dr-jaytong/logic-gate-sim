@@ -4,6 +4,10 @@
 #include <stdexcept>
 #include <cassert>
 
+#define CPP_MODULE "VERL"
+
+#include "Logging.hpp"
+
 void Verilog::AddGate(Verilog::Gate const &inputGate) 
 {
     std::unordered_map<std::string, Verilog::Wire>::iterator          itFindWire;

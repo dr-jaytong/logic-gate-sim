@@ -1,7 +1,9 @@
-#include <iostream>
 #include <filesystem>
-#include <stdexcept>
 #include "FileHandler.hpp"
+
+#define CPP_MODULE "FILE"
+
+#include "Logging.hpp"
 
 bool FileHandler::FileExists(std::string const &sFileName) 
 {
@@ -11,9 +13,9 @@ bool FileHandler::FileExists(std::string const &sFileName)
 FileHandler::FileHandler(std::string const &sFileName)
 {
     if (!FileExists(sFileName))
-        throw std::invalid_argument(sFileName + " does not exist!");
+        LOG_ERROR(sFileName + " does not exist!");
 
-    std::cout << "Opening file: " << sFileName << std::endl;
+    LOG("Opening file: " << sFileName);
     m_File.open(sFileName);
 }
 

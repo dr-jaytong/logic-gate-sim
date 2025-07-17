@@ -1,8 +1,13 @@
 #include <vector>
 #include <string>
+#include <chrono>
 
 #include "ParseVerilogFile.hpp"
 #include "Utilities.hpp"
+
+#define CPP_MODULE "PARS"
+
+#include "Logging.hpp"
 
 std::string ParseVerilogFile::ParseNextLine(FileHandler &VerilogFile)
 {
@@ -84,6 +89,9 @@ bool ParseVerilogFile::IsGate(std::string const &sKeyword)
 
 void ParseVerilogFile::ParseFile(Verilog &VerilogModule, FileHandler &VerilogFile)
 {
+    LOG("Parsing and building verilog module structure");
+    std::chrono::steady_clock::time_point const tpStartParse(std::chrono::steady_clock::now());
+
     while (!VerilogFile.eof()) {
         std::string sLine(VerilogFile.GetNextLine());
 
@@ -113,4 +121,6 @@ void ParseVerilogFile::ParseFile(Verilog &VerilogModule, FileHandler &VerilogFil
             
         }
     }
+    std::chrono::steady_clock::time_point const tpStopParse(std::chrono::steady_clock::now());
+    LOG("Parse and construction completed in " << Utility::PrintElapsedTime(tpStopParse, tpStartParse));
 }

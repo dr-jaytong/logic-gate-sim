@@ -1,4 +1,9 @@
 #include "CommandLineInterface.hpp"
+
+#define CPP_MODULE "CLII"
+
+#include "Logging.hpp"
+
 #include <iostream>
 #include <stdexcept>
 
@@ -16,10 +21,10 @@ void CommandLineInterface::RegisterArgument(std::string const &sArgumentName, st
 {
     std::string const &sArgSubstring(sArgumentName.substr(0, 2));
     if (sArgumentName.find('-') == std::string::npos) 
-        throw std::invalid_argument("Arguments must be prepended with - or a --");
+        LOG_ERROR("Arguments must be prepended with - or a --")
 
     if (m_mapArguments2ArgData.find(sArgumentName) != m_mapArguments2ArgData.end())
-        throw std::invalid_argument(sArgumentName + " was already registered!");
+        LOG_ERROR(sArgumentName + " was already registered!");
 
     m_mapArguments2ArgData.insert({sArgumentName, ArgData(sArgumentName, sArgumentType, IsRequired, IsFlag)});
 }
@@ -27,24 +32,24 @@ void CommandLineInterface::RegisterArgument(std::string const &sArgumentName, st
 bool CommandLineInterface::Parse(int argc, char *argv[])
 {
     if (argc == 0) 
-        throw std::invalid_argument("Insufficient parameters");
+        LOG_ERROR("Insufficient parameters");
 
     for (int iArgCounter = 1; iArgCounter < argc; ++iArgCounter) {
         std::string const sArgumentName(argv[iArgCounter]);
         std::map<std::string, ArgData>::iterator itFindArg(m_mapArguments2ArgData.find(sArgumentName));
         if (itFindArg == m_mapArguments2ArgData.end())
-            throw std::invalid_argument("Unknown argument " + sArgumentName);
+            LOG_ERROR("Unknown argument " + sArgumentName);
 
         itFindArg->second.m_bIsSet = true;
         if (!itFindArg->second.m_bIsFlag) {
             ++iArgCounter;
             if (iArgCounter > argc || argv[iArgCounter] == nullptr)
-                throw std::invalid_argument(itFindArg->second.m_sArgumentName + " is missing an operand!");
+                LOG_ERROR(itFindArg->second.m_sArgumentName + " is missing an operand!");
 
             std::string const sArgumentValue(argv[iArgCounter]);
             std::string const sArgumentValueSubstring(sArgumentValue.substr(0, 2));
             if (sArgumentValueSubstring.find('-') != std::string::npos)
-                throw std::invalid_argument(itFindArg->second.m_sArgumentName + " requires an operand");
+                LOG_ERROR(itFindArg->second.m_sArgumentName + " requires an operand");
             itFindArg->second.m_sValue = argv[iArgCounter];
         }
     }
@@ -53,7 +58,7 @@ bool CommandLineInterface::Parse(int argc, char *argv[])
     
     for (auto const &ArgData : m_mapArguments2ArgData) {
         if (ArgData.second.m_bIsRequired && !ArgData.second.m_bIsSet)
-            throw std::invalid_argument(ArgData.second.m_sArgumentName + " was not set and it is required!");
+            LOG_ERROR(ArgData.second.m_sArgumentName + " was not set and it is required!");
     }
 
     return true;

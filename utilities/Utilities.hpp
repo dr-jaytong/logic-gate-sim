@@ -1,6 +1,6 @@
 #include <string>
 #include <vector>
-
+#include <chrono>
 
 namespace Utility
 {
@@ -10,4 +10,7 @@ namespace Utility
     std::string StripString(std::string const &sLine, std::string const &sWord);
     std::string RemoveWhiteSpace(std::string const &sLine);
     std::vector<std::string> TokenizeString(std::string const &sLine, char const &cDelimeter);
+
+    std::string PrintElapsedTime(std::chrono::steady_clock::time_point const &tpEnd,
+                                 std::chrono::steady_clock::time_point const &tpStart);
 };

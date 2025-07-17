@@ -1,6 +1,8 @@
 #include "Utilities.hpp"
+#include <chrono>
 #include <sstream>
 #include <algorithm>
+#include <iostream>
 
 namespace Utility {
 
@@ -60,4 +62,20 @@ std::vector<std::string> TokenizeString(std::string const &sLine, char const &cD
     return vTokens;
 }
 
+std::string PrintElapsedTime(std::chrono::steady_clock::time_point const &tpEnd,
+                             std::chrono::steady_clock::time_point const &tpStart)
+{
+    std::chrono::steady_clock::duration tDuration(tpEnd - tpStart);
+    long long llTotalTimeInSeconds(std::chrono::duration_cast<std::chrono::seconds>(tDuration).count());
+    long long const llMinutes(llTotalTimeInSeconds % 3600 / 60);
+    long long const llSeconds(llTotalTimeInSeconds % 60);
+    double const llMilliSeconds(llTotalTimeInSeconds % 1000);
+
+            //llTotalTimeInSeconds / 1000);
+
+    std::cout << llMinutes << ":" << llSeconds << "." << llMilliSeconds << std::endl;
+
+    return "";
+}
+    
 };
