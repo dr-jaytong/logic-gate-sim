@@ -1,6 +1,10 @@
 #include "CommandLineInterface.hpp"
 #include "ParseVerilogFile.hpp"
 
+#define CPP_MODULE "MAIN"
+
+#include "Logging.hpp"
+
 int main(int argc, char *argv[])
 {
     CommandLineInterface CLI;
@@ -12,8 +16,9 @@ int main(int argc, char *argv[])
     Verilog VerilogModule;
     ParseVerilogFile::ParseFile(VerilogModule, VerilogFile);
 
-    VerilogModule.Print();
+    //VerilogModule.Print();
 
     ///ParseVerilogFile verilog(CLI.GetValue("--filename"));
     ///verilog.ParseFile(VerilogModule);
+    LOG("Program completed");
 }
