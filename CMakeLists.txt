@@ -8,7 +8,7 @@ set(filelist utilities/CommandLineInterface.cpp
              utilities/FileHandler.cpp
              utilities/Utilities.cpp
              verilog_primitives/Verilog.cpp
-             verilog_primitives/ParseVerilogFile.cpp
+             verilog_primitives/VerilogUtilities.cpp
              main.cpp
     )
 
