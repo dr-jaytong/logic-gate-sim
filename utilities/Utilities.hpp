@@ -4,12 +4,15 @@
 
 namespace Utility
 {
-    std::string GetFirstWordFromLine(std::string const &sLine);
-    std::string StripString(std::string const &sLine, std::vector<char> const &vPatterns);
-    std::string StripString(std::string const &sLine, char const &cDelimeter);
-    std::string StripString(std::string const &sLine, std::string const &sWord);
+namespace String
+{
+    std::string GetFirstWord(std::string const &sLine);
+    std::string Strip(std::string const &sLine, std::vector<char> const &vPatterns);
+    std::string Strip(std::string const &sLine, char const &cDelimeter);
+    std::string Strip(std::string const &sLine, std::string const &sWord);
     std::string RemoveWhiteSpace(std::string const &sLine);
-    std::vector<std::string> TokenizeString(std::string const &sLine, char const &cDelimeter);
+    std::vector<std::string> Tokenize(std::string const &sLine, char const &cDelimeter);
+};
 
     std::string PrintElapsedTime(std::chrono::steady_clock::time_point const &tpEnd,
                                  std::chrono::steady_clock::time_point const &tpStart);
