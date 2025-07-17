@@ -5,8 +5,9 @@
 #include <iostream>
 
 namespace Utility {
+namespace String {
 
-std::string GetFirstWordFromLine(std::string const &sLine)
+std::string GetFirstWord(std::string const &sLine)
 {
     size_t const iStartPosition(sLine.find_first_not_of(" \t\n\r\f\v"));             // Find first non-white space character
     size_t const iEndPosition  (sLine.find_first_of(" \t\n\r\f\v", iStartPosition)); // Find first position of white space after first character
@@ -19,26 +20,26 @@ std::string GetFirstWordFromLine(std::string const &sLine)
 
 std::string RemoveWhiteSpace(std::string const &sLine)
 {
-    return StripString(sLine, ' ');
+    return Strip(sLine, ' ');
 }
 
-std::string StripString(std::string const &sLine, std::vector<char> const &vPatterns)
+std::string Strip(std::string const &sLine, std::vector<char> const &vPatterns)
 {
     std::string sCleanLine(sLine);
     for (auto const &sPattern : vPatterns) 
-        sCleanLine = StripString(sCleanLine, sPattern);
+        sCleanLine = Strip(sCleanLine, sPattern);
 
     return sCleanLine;
 }
 
-std::string StripString(std::string const &sLine, char const &cDelimeter)
+std::string Strip(std::string const &sLine, char const &cDelimeter)
 {
     std::string sCleanLine(sLine);
     sCleanLine.erase(std::remove(sCleanLine.begin(), sCleanLine.end(), cDelimeter), sCleanLine.end());
     return sCleanLine; 
 }
 
-std::string StripString(std::string const &sLine, std::string const &sWordToRemove)
+std::string Strip(std::string const &sLine, std::string const &sWordToRemove)
 {
     std::string sCleanLine(sLine);
     size_t const uiPos(sCleanLine.find(sWordToRemove));
@@ -49,7 +50,7 @@ std::string StripString(std::string const &sLine, std::string const &sWordToRemo
     return sCleanLine;
 }
 
-std::vector<std::string> TokenizeString(std::string const &sLine, char const &cDelimeter)
+std::vector<std::string> Tokenize(std::string const &sLine, char const &cDelimeter)
 {
     std::vector<std::string> vTokens;
     std::stringstream ssLine(sLine);
@@ -61,6 +62,8 @@ std::vector<std::string> TokenizeString(std::string const &sLine, char const &cD
 
     return vTokens;
 }
+
+}; // namespace string
 
 std::string PrintElapsedTime(std::chrono::steady_clock::time_point const &tpEnd,
                              std::chrono::steady_clock::time_point const &tpStart)

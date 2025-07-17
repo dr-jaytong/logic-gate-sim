@@ -25,8 +25,8 @@ std::string VerilogUtility::ParseNextVerilogLine(FileHandler &VerilogFile)
 
 std::vector<std::string> VerilogUtility::ExtractPortNames(std::string const &sPortsFromString)
 {
-    std::string const sFilteredLine(Utility::StripString(sPortsFromString, std::vector<char>({' ', ';', ')', '('})));
-    return Utility::TokenizeString(sFilteredLine, ',');
+    std::string const sFilteredLine(Utility::String::Strip(sPortsFromString, std::vector<char>({' ', ';', ')', '('})));
+    return Utility::String::Tokenize(sFilteredLine, ',');
 }
 
 std::unordered_map<std::string, Verilog::Wire> VerilogUtility::ExtractWires(std::string const &sWiresFromString)
@@ -41,8 +41,8 @@ std::unordered_map<std::string, Verilog::Wire> VerilogUtility::ExtractWires(std:
 
 std::unordered_map<std::string, Verilog::PrimaryInput> VerilogUtility::ExtractModuleInputs(std::string const &sPorts)
 {
-    std::string const sModulePortType(Utility::GetFirstWordFromLine(sPorts));
-    std::string const sModulePorts(Utility::StripString(sPorts, sModulePortType));
+    std::string const sModulePortType(Utility::String::GetFirstWord(sPorts));
+    std::string const sModulePorts(Utility::String::Strip(sPorts, sModulePortType));
 
     std::unordered_map<std::string, Verilog::PrimaryInput> umPrimaryInputs;
     for (auto const &sPortName : ExtractPortNames(sModulePorts)) 
@@ -53,8 +53,8 @@ std::unordered_map<std::string, Verilog::PrimaryInput> VerilogUtility::ExtractMo
 
 std::unordered_map<std::string, Verilog::PrimaryOutput> VerilogUtility::ExtractModuleOutputs(std::string const &sPorts)
 {
-    std::string const sModulePortType(Utility::GetFirstWordFromLine(sPorts));
-    std::string const sModulePorts(Utility::StripString(sPorts, sModulePortType));
+    std::string const sModulePortType(Utility::String::GetFirstWord(sPorts));
+    std::string const sModulePorts(Utility::String::Strip(sPorts, sModulePortType));
 
     std::unordered_map<std::string, Verilog::PrimaryOutput> umPrimaryOutputs;
     for (auto const &sPortName : ExtractPortNames(sModulePorts)) 
@@ -67,11 +67,11 @@ Verilog::Gate VerilogUtility::ExtractGateData(std::string const &sGateInfoFromSt
 {
     std::string sLogicGateInfo(sGateInfoFromString);
 
-    std::string const sGateType(Utility::GetFirstWordFromLine(sLogicGateInfo));
-    sLogicGateInfo = Utility::StripString(sLogicGateInfo, sGateType);
+    std::string const sGateType(Utility::String::GetFirstWord(sLogicGateInfo));
+    sLogicGateInfo = Utility::String::Strip(sLogicGateInfo, sGateType);
 
-    std::string const sGateName (Utility::RemoveWhiteSpace(sLogicGateInfo.substr(0, sLogicGateInfo.find_first_of('('))));
-    std::string       sGatePorts(Utility::RemoveWhiteSpace(Utility::StripString(sLogicGateInfo, sGateName)));
+    std::string const sGateName (Utility::String::RemoveWhiteSpace(sLogicGateInfo.substr(0, sLogicGateInfo.find_first_of('('))));
+    std::string       sGatePorts(Utility::String::RemoveWhiteSpace(Utility::String::Strip(sLogicGateInfo, sGateName)));
 
     std::vector<std::string> vGatePorts(ExtractPortNames(sGatePorts));
     return Verilog::Gate(sGateType, sGateName, vGatePorts.front(), std::vector<std::string>(vGatePorts.begin() + 1, vGatePorts.end()));
@@ -101,7 +101,7 @@ void VerilogUtility::ParseFile(Verilog &VerilogModule, FileHandler &VerilogFile)
             sLine.find("//") != std::string::npos)
             continue;
 
-        std::string const sKeyword(Utility::GetFirstWordFromLine(sLine));
+        std::string const sKeyword(Utility::String::GetFirstWord(sLine));
 
         // Once reached here, verilog line could be either 'input', 'output', 'wire', or gate
         // We have to parse all the way to the next ';'
