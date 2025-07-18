@@ -29,38 +29,13 @@ std::vector<std::string> VerilogUtility::ExtractPortNames(std::string const &sPo
     return Utility::String::Tokenize(sFilteredLine, ',');
 }
 
-std::unordered_map<std::string, Verilog::Wire> VerilogUtility::ExtractWires(std::string const &sWiresFromString)
+std::unordered_map<std::string, Verilog::Connection> VerilogUtility::ExtractConnectionNames(std::string const &sNamesFromString)
 {
-    std::vector<std::string> const vWireNames(ExtractPortNames(sWiresFromString));
-    std::unordered_map<std::string, Verilog::Wire> umWires;
-    for (auto const &wire : vWireNames)
-        umWires.insert({wire, Verilog::Wire(wire)});
-
-    return umWires;
-}
-
-std::unordered_map<std::string, Verilog::PrimaryInput> VerilogUtility::ExtractModuleInputs(std::string const &sPorts)
-{
-    std::string const sModulePortType(Utility::String::GetFirstWord(sPorts));
-    std::string const sModulePorts(Utility::String::Strip(sPorts, sModulePortType));
-
-    std::unordered_map<std::string, Verilog::PrimaryInput> umPrimaryInputs;
-    for (auto const &sPortName : ExtractPortNames(sModulePorts)) 
-        umPrimaryInputs.insert({sPortName, Verilog::PrimaryInput(sPortName)});
-
-    return umPrimaryInputs;
-}
-
-std::unordered_map<std::string, Verilog::PrimaryOutput> VerilogUtility::ExtractModuleOutputs(std::string const &sPorts)
-{
-    std::string const sModulePortType(Utility::String::GetFirstWord(sPorts));
-    std::string const sModulePorts(Utility::String::Strip(sPorts, sModulePortType));
-
-    std::unordered_map<std::string, Verilog::PrimaryOutput> umPrimaryOutputs;
-    for (auto const &sPortName : ExtractPortNames(sModulePorts)) 
-        umPrimaryOutputs.insert({sPortName, Verilog::PrimaryOutput(sPortName)});
-
-    return umPrimaryOutputs;
+    std::vector<std::string> const vConnectionNames(ExtractPortNames(sNamesFromString));
+    std::unordered_map<std::string, Verilog::Connection> umConnections;
+    for (auto const &sName : vConnectionNames)
+        umConnections.insert({sName, Verilog::Connection(sName)});
+    return umConnections;
 }
 
 Verilog::Gate VerilogUtility::ExtractGateData(std::string const &sGateInfoFromString)
@@ -111,11 +86,11 @@ void VerilogUtility::ParseFile(Verilog &VerilogModule, FileHandler &VerilogFile)
                 sLine += ParseNextVerilogLine(VerilogFile);
 
             if (sKeyword == "input") 
-                VerilogModule.AddInputPorts(ExtractModuleInputs(sLine)); 
+                VerilogModule.AddInputPorts(ExtractConnectionNames(sLine)); 
             else if (sKeyword == "output") 
-                VerilogModule.AddOutputPorts(ExtractModuleOutputs(sLine));
+                VerilogModule.AddOutputPorts(ExtractConnectionNames(sLine));
             else if (sKeyword == "wire") 
-                VerilogModule.AddWires(ExtractWires(sLine));
+                VerilogModule.AddWires(ExtractConnectionNames(sLine));
             else if (IsGate(sKeyword)) 
                 VerilogModule.AddGate(ExtractGateData(sLine));
             

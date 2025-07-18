@@ -10,13 +10,13 @@
 
 void Verilog::AddGate(Verilog::Gate const &inputGate) 
 {
-    std::unordered_map<std::string, Verilog::Wire>::iterator          itFindWire;
+    std::unordered_map<std::string, Verilog::Connection>::iterator itFindWire;
     for (auto const &sInputPort : inputGate.m_vInputPortNames) {
         itFindWire = m_umWireName2GateOutput.find(sInputPort);
         if (itFindWire != m_umWireName2GateOutput.end()) 
             itFindWire->second.m_vOutgoingGates.push_back(inputGate.m_sGateIdentifier);
     
-        std::unordered_map<std::string, Verilog::PrimaryInput>::iterator itFindPI;
+        std::unordered_map<std::string, Verilog::Connection>::iterator itFindPI;
         itFindPI = m_umInputPorts.find(sInputPort);
         if (itFindPI != m_umInputPorts.end())
             itFindPI->second.m_vOutgoingGates.push_back(inputGate.m_sGateIdentifier);
@@ -28,7 +28,7 @@ void Verilog::AddGate(Verilog::Gate const &inputGate)
         itFindWire->second.m_sIncomingGate = inputGate.m_sGateIdentifier;
     }
 
-    std::unordered_map<std::string, Verilog::PrimaryOutput>::iterator itFindPO(m_umOutputPorts.find(inputGate.m_sOutputPortName));
+    std::unordered_map<std::string, Verilog::Connection>::iterator itFindPO(m_umOutputPorts.find(inputGate.m_sOutputPortName));
     if (itFindPO != m_umOutputPorts.end()) {
         assert(itFindPO->second.m_sIncomingGate.empty()); // Make sure only one gate drives the PO
         itFindPO->second.m_sIncomingGate = inputGate.m_sGateIdentifier;

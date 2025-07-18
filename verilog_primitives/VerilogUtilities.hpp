@@ -18,9 +18,11 @@ namespace VerilogUtility
     Verilog::Gate ExtractGateData(std::string const &sGateDataFromString); //(Verilog &VerilogModule, FileHandler &VerilogFile);
     std::vector<std::string> ExtractPortNames(std::string const &sPortsFromString);
 
-    std::unordered_map<std::string, Verilog::Wire>          ExtractWires        (std::string const &sWiresFromString);
-    std::unordered_map<std::string, Verilog::PrimaryInput>  ExtractModuleInputs (std::string const &sPortNamesFromString);
-    std::unordered_map<std::string, Verilog::PrimaryOutput> ExtractModuleOutputs(std::string const &sPortNamesFromString);
+    std::unordered_map<std::string, Verilog::Connection> ExtractConnectionNames(std::string const &sNamesFromString);
+
+    ////std::unordered_map<std::string, Verilog::Wire>          ExtractWires        (std::string const &sWiresFromString);
+    ////std::unordered_map<std::string, Verilog::PrimaryInput>  ExtractModuleInputs (std::string const &sPortNamesFromString);
+    ////std::unordered_map<std::string, Verilog::PrimaryOutput> ExtractModuleOutputs(std::string const &sPortNamesFromString);
 };
 
 #endif
