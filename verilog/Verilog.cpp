@@ -3,7 +3,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <cassert>
-#include <vector>
+#include <queue> 
 
 #define CPP_MODULE "VERL"
 
@@ -40,23 +40,17 @@ void Verilog::AddGate(Verilog::Gate const &inputGate)
 
 void Verilog::Levelize()
 {
-    // Grab primary input's outgoing gates, then assign a level number to the gate
     LOG("Begin Levelization");
 
-    std::vector<std::string> setGatesToAnalyze;
-    for (auto const &primaryInput : m_umInputPorts) {
+    std::queue<std::string> setGatesToAnalyze;
+    for (auto const &primaryInput : m_umInputPorts) { // Push all fanout gates from the primary input ports
         for (auto const &sGateID : primaryInput.second.m_vOutgoingGates) 
-            setGatesToAnalyze.push_back(sGateID);
+            setGatesToAnalyze.push(sGateID);
     }
 
     while (!setGatesToAnalyze.empty()) {
-        std::cout << "ITERATION! GATES TO ANALYZE: ";
-        for (auto const &sGate : setGatesToAnalyze) 
-            std::cout << sGate << " , "; 
-        std::cout << std::endl;
-
-        std::string const sCurrentGate(*setGatesToAnalyze.begin());
-        setGatesToAnalyze.erase(setGatesToAnalyze.begin());
+        std::string const sCurrentGate(setGatesToAnalyze.front());
+        setGatesToAnalyze.pop();//erase(setGatesToAnalyze.begin());
     
         std::cout << "[CURRENT GATE: ] " << sCurrentGate << std::endl;
 
@@ -108,11 +102,11 @@ void Verilog::Levelize()
                 std::cout << "\t Assigning wire : " << itWire->first << " level number: " << itWire->second.m_iLevelNumber << std::endl;
                 for (auto const &sGateID : itWire->second.m_vOutgoingGates) {
                     std::cout << "Adding NEW GATE TO ANALYZE: " << sGateID << std::endl;
-                    setGatesToAnalyze.push_back(sGateID);
+                    setGatesToAnalyze.push(sGateID);
                 }
             }
         } else {
-            setGatesToAnalyze.push_back(sCurrentGate);
+            setGatesToAnalyze.push(sCurrentGate);
         }
     }
     LOG("Levelization completed");
