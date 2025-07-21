@@ -70,14 +70,14 @@ public:
     };
 
 private:
-    std::unordered_map<std::string, Gate> m_umGateID2Gates;
+    std::unordered_map<std::string, Gate>       m_umGateID2Gates;
     std::unordered_map<std::string, Connection> m_umInputPorts;
-    std::unordered_map<std::string, Connection> m_umWireName2GateOutput;
+    std::unordered_map<std::string, Connection> m_umWires;
     std::unordered_map<std::string, Connection> m_umOutputPorts;
 
 public:
 
-    explicit Verilog() : m_umGateID2Gates(), m_umInputPorts(), m_umWireName2GateOutput(), m_umOutputPorts() {}
+    explicit Verilog() : m_umGateID2Gates(), m_umInputPorts(), m_umWires(), m_umOutputPorts() {}
    ~Verilog() {}
 
     Verilog           (Verilog const &RHS)  = delete; // Disable copy
@@ -87,9 +87,9 @@ public:
     void AddGate (Gate const &input);
     Gate &GetGate(std::string const &sGateIdentifier);
 
-    void AddInputPorts (std::unordered_map<std::string, Connection> const &umPorts) { m_umInputPorts          = std::move(umPorts); } 
-    void AddOutputPorts(std::unordered_map<std::string, Connection> const &umPorts) { m_umOutputPorts         = std::move(umPorts); }
-    void AddWires      (std::unordered_map<std::string, Connection> const &umPorts) { m_umWireName2GateOutput = std::move(umPorts); }
+    void AddInputPorts (std::unordered_map<std::string, Connection> const &umPorts) { m_umInputPorts  = std::move(umPorts); } 
+    void AddOutputPorts(std::unordered_map<std::string, Connection> const &umPorts) { m_umOutputPorts = std::move(umPorts); }
+    void AddWires      (std::unordered_map<std::string, Connection> const &umPorts) { m_umWires       = std::move(umPorts); }
 
     void Levelize();
 

@@ -11,24 +11,23 @@
 
 void Verilog::AddGate(Verilog::Gate const &inputGate) 
 {
-    std::unordered_map<std::string, Verilog::Connection>::iterator itFindWire;
     for (auto const &sInputPort : inputGate.m_vInputPortNames) {
-        itFindWire = m_umWireName2GateOutput.find(sInputPort);
-        if (itFindWire != m_umWireName2GateOutput.end()) 
-            itFindWire->second.m_vOutgoingGates.push_back(inputGate.m_sGateIdentifier);
+        auto itFindWireFromInput(m_umWires.find(sInputPort));
+        if (itFindWireFromInput != m_umWires.end()) 
+            itFindWireFromInput->second.m_vOutgoingGates.push_back(inputGate.m_sGateIdentifier);
     
-        std::unordered_map<std::string, Verilog::Connection>::iterator itFindPI(m_umInputPorts.find(sInputPort));
+        auto itFindPI(m_umInputPorts.find(sInputPort));
         if (itFindPI != m_umInputPorts.end())
             itFindPI->second.m_vOutgoingGates.push_back(inputGate.m_sGateIdentifier);
     }
     
-    itFindWire = m_umWireName2GateOutput.find(inputGate.m_sOutputPortName);
-    if (itFindWire != m_umWireName2GateOutput.end()) {
-        assert(itFindWire->second.m_sIncomingGate.empty());
-        itFindWire->second.m_sIncomingGate = inputGate.m_sGateIdentifier;
+    auto itFindWireFromOutput(m_umWires.find(inputGate.m_sOutputPortName));
+    if (itFindWireFromOutput != m_umWires.end()) {
+        assert(itFindWireFromOutput->second.m_sIncomingGate.empty());
+        itFindWireFromOutput->second.m_sIncomingGate = inputGate.m_sGateIdentifier;
     }
 
-    std::unordered_map<std::string, Verilog::Connection>::iterator itFindPO(m_umOutputPorts.find(inputGate.m_sOutputPortName));
+    auto itFindPO(m_umOutputPorts.find(inputGate.m_sOutputPortName));
     if (itFindPO != m_umOutputPorts.end()) {
         assert(itFindPO->second.m_sIncomingGate.empty()); // Make sure only one gate drives the PO
         itFindPO->second.m_sIncomingGate = inputGate.m_sGateIdentifier;
@@ -55,16 +54,16 @@ void Verilog::Levelize()
         int iFoundLargestLevelNumber(-1);
         size_t uNumPortsAnalyzed(0);
 
-        if (m_umGateID2Gates.at(sCurrentGate).m_iLevelNumber != -1) 
+        if (m_umGateID2Gates.at(sCurrentGate).m_iLevelNumber != -1) // Skip current gate if it contains a level number 
             continue;
 
         for (auto const &sInputPort : m_umGateID2Gates.at(sCurrentGate).m_vInputPortNames) {
-            std::unordered_map<std::string, Verilog::Connection>::iterator itFoundPrimaryInput(m_umInputPorts.find(sInputPort)), itFoundWire(m_umWireName2GateOutput.find(sInputPort));
+            auto itFoundPrimaryInput(m_umInputPorts.find(sInputPort)), itFoundWire(m_umWires.find(sInputPort));
            
-            if (itFoundWire != m_umWireName2GateOutput.end() && itFoundWire->second.m_iLevelNumber == -1) 
+            if (itFoundWire != m_umWires.end() && itFoundWire->second.m_iLevelNumber == -1) 
                 break;
 
-            if (itFoundWire != m_umWireName2GateOutput.end()) {
+            if (itFoundWire != m_umWires.end()) {
                 if (itFoundWire->second.m_iLevelNumber > iFoundLargestLevelNumber) 
                     iFoundLargestLevelNumber = itFoundWire->second.m_iLevelNumber;
             }
@@ -76,17 +75,16 @@ void Verilog::Levelize()
             ++uNumPortsAnalyzed;
         }
 
-        if (uNumPortsAnalyzed == m_umGateID2Gates.at(sCurrentGate).m_vInputPortNames.size()) {
+        if (uNumPortsAnalyzed == m_umGateID2Gates.at(sCurrentGate).m_vInputPortNames.size()) { // If all gate's input ports are thoroughly analyzed
             m_umGateID2Gates.at(sCurrentGate).m_iLevelNumber = iFoundLargestLevelNumber + 1; // Assign gate level number
-            std::unordered_map<std::string, Verilog::Connection>::iterator itWire(m_umWireName2GateOutput.find(m_umGateID2Gates.at(sCurrentGate).m_sOutputPortName));
-            if (itWire != m_umWireName2GateOutput.end()) {
-                itWire->second.m_iLevelNumber = m_umGateID2Gates.at(sCurrentGate).m_iLevelNumber;
-                for (auto const &sGateID : itWire->second.m_vOutgoingGates) {
-                    qGatesToAnalyze.push(sGateID);
-                }
+            auto itWire(m_umWires.find(m_umGateID2Gates.at(sCurrentGate).m_sOutputPortName));
+            if (itWire != m_umWires.end()) {
+                itWire->second.m_iLevelNumber = m_umGateID2Gates.at(sCurrentGate).m_iLevelNumber; // Also assign the level number to the net
+                for (auto const &sGateID : itWire->second.m_vOutgoingGates) 
+                    qGatesToAnalyze.push(sGateID); // Add the fanout gates from the net
             }
         } else {
-            qGatesToAnalyze.push(sCurrentGate);
+            qGatesToAnalyze.push(sCurrentGate); // Re-add the current gate because there are still wires with unassigned level numbers
         }
     }
     LOG("Levelization completed");
@@ -113,7 +111,7 @@ void Verilog::Print()
     }
 
     std::cout << "Stored Wires " << std::endl;
-    for (auto const &PI : m_umWireName2GateOutput) {
+    for (auto const &PI : m_umWires) {
         std::cout << "   Wire name: " << PI.first << "   Level : " << PI.second.m_iLevelNumber << std::endl;
         std::cout << "   \t Gate that drives this wire: " << PI.second.m_sIncomingGate << std::endl;
         for (auto const &inputGate : PI.second.m_vOutgoingGates)
