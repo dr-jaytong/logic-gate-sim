@@ -42,71 +42,51 @@ void Verilog::Levelize()
 {
     LOG("Begin Levelization");
 
-    std::queue<std::string> setGatesToAnalyze;
+    std::queue<std::string> qGatesToAnalyze;
     for (auto const &primaryInput : m_umInputPorts) { // Push all fanout gates from the primary input ports
         for (auto const &sGateID : primaryInput.second.m_vOutgoingGates) 
-            setGatesToAnalyze.push(sGateID);
+            qGatesToAnalyze.push(sGateID);
     }
 
-    while (!setGatesToAnalyze.empty()) {
-        std::string const sCurrentGate(setGatesToAnalyze.front());
-        setGatesToAnalyze.pop();//erase(setGatesToAnalyze.begin());
+    while (!qGatesToAnalyze.empty()) {
+        std::string const sCurrentGate(qGatesToAnalyze.front());
+        qGatesToAnalyze.pop();
     
-        std::cout << "[CURRENT GATE: ] " << sCurrentGate << std::endl;
-
         int iFoundLargestLevelNumber(-1);
         size_t uNumPortsAnalyzed(0);
 
-        if (m_umGateID2Gates.at(sCurrentGate).m_iLevelNumber != -1) {
-            std::cout << "GATE WAS ALREADY ASSIGNED! SKIPPING!";
+        if (m_umGateID2Gates.at(sCurrentGate).m_iLevelNumber != -1) 
             continue;
-        }
-
 
         for (auto const &sInputPort : m_umGateID2Gates.at(sCurrentGate).m_vInputPortNames) {
-            std::cout << "analyzing port: " << sInputPort << " from gate: " << sCurrentGate <<  std::endl;
             std::unordered_map<std::string, Verilog::Connection>::iterator itFoundPrimaryInput(m_umInputPorts.find(sInputPort)), itFoundWire(m_umWireName2GateOutput.find(sInputPort));
            
-            if (itFoundWire != m_umWireName2GateOutput.end() && itFoundWire->second.m_iLevelNumber == -1) {
-                std::cout << "Wire : " << itFoundWire->first << " was not assigned" << std::endl;
+            if (itFoundWire != m_umWireName2GateOutput.end() && itFoundWire->second.m_iLevelNumber == -1) 
                 break;
-            }
 
             if (itFoundWire != m_umWireName2GateOutput.end()) {
-                std::cout << "\t It's a wire with level number : " << itFoundWire->second.m_iLevelNumber << std::endl;
                 if (itFoundWire->second.m_iLevelNumber > iFoundLargestLevelNumber) 
                     iFoundLargestLevelNumber = itFoundWire->second.m_iLevelNumber;
-            } else {
-                std::cout << "\t NOT FOUND in wire" << std::endl;
             }
 
             if (itFoundPrimaryInput != m_umInputPorts.end()) {
-                std::cout << "\t It's a primaryInput with level number : " << itFoundPrimaryInput->second.m_iLevelNumber << std::endl;
                 if (itFoundPrimaryInput->second.m_iLevelNumber > iFoundLargestLevelNumber)
                     iFoundLargestLevelNumber = itFoundPrimaryInput->second.m_iLevelNumber;
-            } else {
-                std::cout << "\t NOT FOUND in PRIMARY INPUTS" << std::endl;
-            }
+            } 
             ++uNumPortsAnalyzed;
         }
 
         if (uNumPortsAnalyzed == m_umGateID2Gates.at(sCurrentGate).m_vInputPortNames.size()) {
             m_umGateID2Gates.at(sCurrentGate).m_iLevelNumber = iFoundLargestLevelNumber + 1; // Assign gate level number
-            std::cout << "\t\t\t Gate: " << sCurrentGate << " has level number : " << m_umGateID2Gates.at(sCurrentGate).m_iLevelNumber << std::endl;
-
-            std::cout << "Assigning new gates to analyze" << std::endl;
             std::unordered_map<std::string, Verilog::Connection>::iterator itWire(m_umWireName2GateOutput.find(m_umGateID2Gates.at(sCurrentGate).m_sOutputPortName));
             if (itWire != m_umWireName2GateOutput.end()) {
-                std::cout << "\t Output port : " << itWire->first << " is NOT a primary output" << std::endl;
                 itWire->second.m_iLevelNumber = m_umGateID2Gates.at(sCurrentGate).m_iLevelNumber;
-                std::cout << "\t Assigning wire : " << itWire->first << " level number: " << itWire->second.m_iLevelNumber << std::endl;
                 for (auto const &sGateID : itWire->second.m_vOutgoingGates) {
-                    std::cout << "Adding NEW GATE TO ANALYZE: " << sGateID << std::endl;
-                    setGatesToAnalyze.push(sGateID);
+                    qGatesToAnalyze.push(sGateID);
                 }
             }
         } else {
-            setGatesToAnalyze.push(sCurrentGate);
+            qGatesToAnalyze.push(sCurrentGate);
         }
     }
     LOG("Levelization completed");

@@ -12,23 +12,31 @@ public:
         std::string m_sName;
         std::string m_sIncomingGate; // For the gate that drives the signal of this connection (wire, primary output) 
         std::vector<std::string> m_vOutgoingGates; // For gates that depend on this connection (wire, primary input)
-        
+
+        int m_iLevelNumber;
+
         Connection &operator=(Connection const &RHS) = delete;
 
-        Connection(std::string const &sName) 
+        Connection(std::string const &sName, int const iLevelNumber) // For primary inputs 
             : m_sName(sName)
             , m_sIncomingGate("")
-            , m_vOutgoingGates(){}
+            , m_vOutgoingGates()
+            , m_iLevelNumber(iLevelNumber) {}
+
+        Connection(std::string const &sName)
+            : Connection(sName, -1) {}
 
         Connection(Connection const &RHS)
             : m_sName(RHS.m_sName)
             , m_sIncomingGate(RHS.m_sIncomingGate)
-            , m_vOutgoingGates(std::move(RHS.m_vOutgoingGates)) {}
+            , m_vOutgoingGates(std::move(RHS.m_vOutgoingGates))
+            , m_iLevelNumber(RHS.m_iLevelNumber) {}
 
         Connection(Connection const &&RHS)
             : m_sName(RHS.m_sName)
             , m_sIncomingGate(RHS.m_sIncomingGate)
-            , m_vOutgoingGates(std::move(RHS.m_vOutgoingGates)) {}
+            , m_vOutgoingGates(std::move(RHS.m_vOutgoingGates))
+            , m_iLevelNumber(RHS.m_iLevelNumber) {}
     };
 
     struct Gate {
@@ -36,7 +44,7 @@ public:
         std::string m_sGateIdentifier;
         std::string m_sOutputPortName;
         std::vector<std::string> m_vInputPortNames;
-        std::vector<std::string> m_vOutgoingGates; // outgoing nodes
+        int m_iLevelNumber;
 
         Gate(std::string              const &sGateType, 
              std::string              const &sGateIdentifier, 
@@ -46,7 +54,7 @@ public:
             , m_sGateIdentifier(sGateIdentifier)
             , m_sOutputPortName(sOutputPortName)
             , m_vInputPortNames(std::move(vInputPortNames))
-            , m_vOutgoingGates() {}
+            , m_iLevelNumber(-1){}
 
        ~Gate() {}
 
@@ -58,7 +66,7 @@ public:
             , m_sGateIdentifier(RHS.m_sGateIdentifier)
             , m_sOutputPortName(RHS.m_sOutputPortName)
             , m_vInputPortNames(std::move(RHS.m_vInputPortNames))
-            , m_vOutgoingGates (std::move(RHS.m_vOutgoingGates)) {}
+            , m_iLevelNumber(-1) {}
     };
 
 private:
@@ -82,6 +90,8 @@ public:
     void AddInputPorts (std::unordered_map<std::string, Connection> const &umPorts) { m_umInputPorts          = std::move(umPorts); } 
     void AddOutputPorts(std::unordered_map<std::string, Connection> const &umPorts) { m_umOutputPorts         = std::move(umPorts); }
     void AddWires      (std::unordered_map<std::string, Connection> const &umPorts) { m_umWireName2GateOutput = std::move(umPorts); }
+
+    void Levelize();
 
     void Print();
 };
