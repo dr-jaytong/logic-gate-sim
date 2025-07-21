@@ -34,8 +34,8 @@ std::unordered_map<std::string, Verilog::Connection> VerilogUtility::ExtractConn
     std::string const sConnectionType(Utility::String::GetFirstWord(sNamesFromString));
     std::vector<std::string> const vConnectionNames(ExtractPortNames(Utility::String::Strip(sNamesFromString, sConnectionType)));
     std::unordered_map<std::string, Verilog::Connection> umConnections;
-    for (auto const &sName : vConnectionNames)
-        umConnections.insert({sName, Verilog::Connection(sName)});
+    for (auto const &sName : vConnectionNames) 
+        umConnections.insert({sName, sConnectionType == "input" ? Verilog::Connection(sName, 0) /* Primary Input */ : Verilog::Connection(sName)});
     return umConnections;
 }
 
@@ -61,7 +61,8 @@ bool VerilogUtility::IsGate(std::string const &sKeyword)
            sKeyword == "nand" ||
            sKeyword == "or" || 
            sKeyword == "nor" || 
-           sKeyword == "not";
+           sKeyword == "not" ||
+           sKeyword == "xor";
 }
 
 
