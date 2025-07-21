@@ -7,15 +7,15 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(filelist utilities/CommandLineInterface.cpp
              utilities/FileHandler.cpp
              utilities/Utilities.cpp
-             verilog_primitives/Verilog.cpp
-             verilog_primitives/VerilogUtilities.cpp
+             verilog/Verilog.cpp
+             verilog/VerilogUtilities.cpp
              main.cpp
     )
 
 
 
 add_executable(${PROJECT_NAME} ${filelist})
-target_include_directories(${PROJECT_NAME} PUBLIC utilities verilog_primitives)
+target_include_directories(${PROJECT_NAME} PUBLIC utilities verilog)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
 
 
