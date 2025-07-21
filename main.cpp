@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
     Verilog VerilogModule;
     VerilogUtility::ParseFile(VerilogModule, VerilogFile);
 
+    VerilogModule.Levelize();
     VerilogModule.Print();
 
     ///ParseVerilogFile verilog(CLI.GetValue("--filename"));
