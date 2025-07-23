@@ -81,6 +81,11 @@ private:
     std::vector<std::string>                    m_vPrimaryInputs;
     std::unordered_map<std::string, Gate>       m_umGateID2Gates;
     std::unordered_map<std::string, Connection> m_umConnectionID2Connection;
+
+    void ConvertModulePort(std::string const &sPort, ConnectionType const eType);
+    void AddGate (Gate const &input);
+    void AddDFFPorts(std::vector<std::string> const &vDFFPorts);
+    void AddPrimaryInputs(std::vector<std::string> const &vPrimaryInputs) { m_vPrimaryInputs = std::move(vPrimaryInputs); }
 public:
 
     explicit Verilog() : m_vPrimaryInputs(), m_umGateID2Gates(), m_umConnectionID2Connection() {}
@@ -91,11 +96,8 @@ public:
     Verilog           (Verilog const &&RHS) = delete; // Disable move
     Verilog &operator=(Verilog const &RHS)  = delete; // Disable assign
 
-    void AddPrimaryInputs(std::vector<std::string> const &vPrimaryInputs) { m_vPrimaryInputs = std::move(vPrimaryInputs); }
-    void AddGate (Gate const &input);
-    Gate &GetGate(std::string const &sGateIdentifier);
-
-    void AddConnections(std::unordered_map<std::string, Connection> const &umConnections) { m_umConnectionID2Connection.insert(umConnections.begin(), umConnections.end()); }
+    void AddLogic      (Gate const &input);
+    void AddConnections(std::unordered_map<std::string, Connection> const &umConnections); // { m_umConnectionID2Connection.insert(umConnections.begin(), umConnections.end()); }
 
     void Levelize();
 

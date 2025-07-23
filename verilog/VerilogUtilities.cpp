@@ -29,25 +29,27 @@ std::vector<std::string> VerilogUtility::ExtractPortNames(std::string const &sPo
     return Utility::String::Tokenize(sFilteredLine, ',');
 }
 
-void VerilogUtility::ExtractConnections(std::string const &sNamesFromString, Verilog &VerilogModule)
+std::unordered_map<std::string, Verilog::Connection> VerilogUtility::ExtractConnections(std::string const &sNamesFromString)
 {
     std::string const sConnectionType(Utility::String::GetFirstWord(sNamesFromString));
     std::vector<std::string> const vConnectionNames(ExtractPortNames(Utility::String::Strip(sNamesFromString, sConnectionType)));
     std::unordered_map<std::string, Verilog::Connection> umConnections;
-    for (auto const &sName : vConnectionNames) { 
+    for (auto const &sName : vConnectionNames) {
+        if (Utility::String::ToLowerCase(sName) == "ck" || Utility::String::ToLowerCase(sName) == "clk") {
+            std::cout << "Skipping clock signal" << std::endl;
+            continue;
+        }
+
         umConnections.insert({sName, sConnectionType == "input"  ? Verilog::Connection(sName, Verilog::ConnectionType::PRIMARY_INPUT) :
                                      sConnectionType == "output" ? Verilog::Connection(sName, Verilog::ConnectionType::PRIMARY_OUTPUT) : 
                                                                    Verilog::Connection(sName, Verilog::ConnectionType::WIRE)});
     }
 
-    VerilogModule.AddConnections(umConnections);
-    if (sConnectionType == "input")
-        VerilogModule.AddPrimaryInputs(vConnectionNames);
+    return umConnections;
 }
 
-Verilog::Gate VerilogUtility::ExtractGateData(std::string const &sGateInfoFromString)
+Verilog::Gate VerilogUtility::ExtractLogicData(std::string const &sGateInfoFromString)
 {
-
     // Gate level netlist is in the form of: gate_type gate_ID(output_net, input_net1, input_net2, ....);
 
     std::string const sGateType     (Utility::String::GetFirstWord(sGateInfoFromString)); 
@@ -61,12 +63,13 @@ Verilog::Gate VerilogUtility::ExtractGateData(std::string const &sGateInfoFromSt
 
 bool VerilogUtility::IsGate(std::string const &sKeyword)
 {
-    return sKeyword == "and" || 
+    return sKeyword == "and"  || 
            sKeyword == "nand" ||
-           sKeyword == "or" || 
-           sKeyword == "nor" || 
-           sKeyword == "not" ||
-           sKeyword == "xor";
+           sKeyword == "or"   || 
+           sKeyword == "nor"  || 
+           sKeyword == "not"  ||
+           sKeyword == "xor"  ||
+           sKeyword == "dff";
 }
 
 void VerilogUtility::ParseFile(Verilog &VerilogModule, FileHandler &VerilogFile)
@@ -92,10 +95,7 @@ void VerilogUtility::ParseFile(Verilog &VerilogModule, FileHandler &VerilogFile)
             if (sLine.find(';') == std::string::npos) 
                 sLine += ParseNextVerilogLine(VerilogFile);
 
-            if (IsGate(sKeyword)) 
-                VerilogModule.AddGate(ExtractGateData(sLine));
-            else 
-                ExtractConnections(sLine, VerilogModule);
+            IsGate(sKeyword) ? VerilogModule.AddLogic(ExtractLogicData(sLine)) : VerilogModule.AddConnections(ExtractConnections(sLine));
         }
     }
     std::chrono::steady_clock::time_point const tpStopParse(std::chrono::steady_clock::now());

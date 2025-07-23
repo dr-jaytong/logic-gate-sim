@@ -1,5 +1,6 @@
 #include "Verilog.hpp"
 
+#include <algorithm>
 #include <iostream>
 #include <cassert>
 #include <queue> 
@@ -27,6 +28,38 @@ void Verilog::AddGate(Verilog::Gate const &inputGate)
 
     if (!m_umGateID2Gates.insert({inputGate.m_sGateIdentifier, std::move(inputGate)}).second) 
         LOG_ERROR(inputGate.m_sGateIdentifier + " already exists !");
+}
+
+void Verilog::AddLogic(Verilog::Gate const &inputGate)
+{
+    inputGate.m_sGateType == "dff" ? AddDFFPorts(inputGate.m_vInputPortNames) : AddGate(inputGate);
+}
+
+void Verilog::ConvertModulePort(std::string const &sPort, ConnectionType const eType)
+{
+    auto itFindConnection(m_umConnectionID2Connection.find(sPort));
+    if (itFindConnection == m_umConnectionID2Connection.end())
+        LOG_ERROR(sPort + " was not found in connections!");
+    itFindConnection->second.m_eType = eType; 
+    itFindConnection->second.m_iLevelNumber = eType == ConnectionType::PRIMARY_INPUT ? 0 : -1;
+}
+
+void Verilog::AddDFFPorts(std::vector<std::string> const &vDFFPorts) 
+{
+    assert(vDFFPorts.size() == 2);
+    ConvertModulePort(vDFFPorts[0], ConnectionType::PRIMARY_INPUT);
+    ConvertModulePort(vDFFPorts[1],  ConnectionType::PRIMARY_OUTPUT);
+}
+
+void Verilog::AddConnections(std::unordered_map<std::string, Connection> const &umConnections)
+{
+    m_umConnectionID2Connection.insert(umConnections.begin(), umConnections.end());
+    
+    if (umConnections.begin()->second.m_eType == ConnectionType::PRIMARY_INPUT) { // This block is needed for adding outgoing gates from primary inputs during levelization
+        std::vector<std::string> vPrimaryInputs(umConnections.size());
+        std::transform(umConnections.begin(), umConnections.end(), vPrimaryInputs.begin(), [](auto const &elem) { return elem.first; });
+        AddPrimaryInputs(vPrimaryInputs);
+    }
 }
 
 void Verilog::Levelize()
@@ -91,6 +124,7 @@ void Verilog::Print()
         std::cout << "   \t Gate that drives this wire: " << PI.second.m_sIncomingGate << std::endl;
         for (auto const &inputGate : PI.second.m_vOutgoingGates)
             std::cout << "\t Gates rely on this wire: " << inputGate << std::endl;
+        std::cout << std::endl;
     }
 
     std::cout << "Stored Gates " << std::endl;
