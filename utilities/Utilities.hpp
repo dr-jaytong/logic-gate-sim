@@ -11,6 +11,8 @@ namespace String
     std::string Strip(std::string const &sLine, char const &cDelimeter);
     std::string Strip(std::string const &sLine, std::string const &sWord);
     std::string RemoveWhiteSpace(std::string const &sLine);
+    std::string ToLowerCase(std::string const &sInput);
+
     std::vector<std::string> Tokenize(std::string const &sLine, char const &cDelimeter);
 };
 

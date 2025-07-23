@@ -63,6 +63,13 @@ std::vector<std::string> Tokenize(std::string const &sLine, char const &cDelimet
     return vTokens;
 }
 
+std::string ToLowerCase(std::string const &sInput)
+{
+    std::string sConverted(sInput);
+    std::transform(sConverted.begin(), sConverted.end(), sConverted.begin(), ::tolower); 
+    return sConverted;
+}
+
 }; // namespace string
 
 std::string PrintElapsedTime(std::chrono::steady_clock::time_point const &tpEnd,
