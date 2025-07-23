@@ -7,37 +7,45 @@
 
 class Verilog {
 public:
+    enum ConnectionType { PRIMARY_INPUT = 0, PRIMARY_OUTPUT = 1, WIRE = 2 }; 
 
     struct Connection { // Primary Input, Primary Output, or Internal Wire
-        std::string m_sName;
-        std::string m_sIncomingGate; // For the gate that drives the signal of this connection (wire, primary output) 
+        std::string              m_sName;
+        std::string              m_sIncomingGate; // For the gate that drives the signal of this connection (wire, primary output) 
         std::vector<std::string> m_vOutgoingGates; // For gates that depend on this connection (wire, primary input)
 
-        int m_iLevelNumber;
+        int            m_iLevelNumber;
+        ConnectionType m_eType;
 
+        Connection() = delete;
         Connection &operator=(Connection const &RHS) = delete;
 
-        Connection(std::string const &sName, int const iLevelNumber) // For primary inputs 
+        Connection(std::string const &sName, ConnectionType const eType) 
             : m_sName(sName)
             , m_sIncomingGate("")
             , m_vOutgoingGates()
-            , m_iLevelNumber(iLevelNumber) {}
-
-        Connection(std::string const &sName)
-            : Connection(sName, -1) {}
+            , m_iLevelNumber(eType == ConnectionType::PRIMARY_INPUT ? 0 : -1)
+            , m_eType(eType) {}
 
         Connection(Connection const &RHS)
-            : m_sName(RHS.m_sName)
-            , m_sIncomingGate(RHS.m_sIncomingGate)
+            : m_sName         (RHS.m_sName)
+            , m_sIncomingGate (RHS.m_sIncomingGate)
             , m_vOutgoingGates(std::move(RHS.m_vOutgoingGates))
-            , m_iLevelNumber(RHS.m_iLevelNumber) {}
+            , m_iLevelNumber  (RHS.m_iLevelNumber)
+            , m_eType         (RHS.m_eType){}
 
         Connection(Connection const &&RHS)
-            : m_sName(RHS.m_sName)
-            , m_sIncomingGate(RHS.m_sIncomingGate)
+            : m_sName         (RHS.m_sName)
+            , m_sIncomingGate (RHS.m_sIncomingGate)
             , m_vOutgoingGates(std::move(RHS.m_vOutgoingGates))
-            , m_iLevelNumber(RHS.m_iLevelNumber) {}
+            , m_iLevelNumber  (RHS.m_iLevelNumber)
+            , m_eType         (RHS.m_eType) {}
     };
+
+    std::string GetConnectionType(Connection const &RHS) {
+        return RHS.m_eType == ConnectionType::PRIMARY_INPUT  ? "primary input"  :
+               RHS.m_eType == ConnectionType::PRIMARY_OUTPUT ? "primary output" : "wire"; 
+    }
 
     struct Gate {
         std::string m_sGateType;
@@ -70,26 +78,24 @@ public:
     };
 
 private:
+    std::vector<std::string>                    m_vPrimaryInputs;
     std::unordered_map<std::string, Gate>       m_umGateID2Gates;
-    std::unordered_map<std::string, Connection> m_umInputPorts;
-    std::unordered_map<std::string, Connection> m_umWires;
-    std::unordered_map<std::string, Connection> m_umOutputPorts;
-
+    std::unordered_map<std::string, Connection> m_umConnectionID2Connection;
 public:
 
-    explicit Verilog() : m_umGateID2Gates(), m_umInputPorts(), m_umWires(), m_umOutputPorts() {}
+    explicit Verilog() : m_vPrimaryInputs(), m_umGateID2Gates(), m_umConnectionID2Connection() {}
+    
    ~Verilog() {}
 
     Verilog           (Verilog const &RHS)  = delete; // Disable copy
     Verilog           (Verilog const &&RHS) = delete; // Disable move
     Verilog &operator=(Verilog const &RHS)  = delete; // Disable assign
 
+    void AddPrimaryInputs(std::vector<std::string> const &vPrimaryInputs) { m_vPrimaryInputs = std::move(vPrimaryInputs); }
     void AddGate (Gate const &input);
     Gate &GetGate(std::string const &sGateIdentifier);
 
-    void AddInputPorts (std::unordered_map<std::string, Connection> const &umPorts) { m_umInputPorts  = std::move(umPorts); } 
-    void AddOutputPorts(std::unordered_map<std::string, Connection> const &umPorts) { m_umOutputPorts = std::move(umPorts); }
-    void AddWires      (std::unordered_map<std::string, Connection> const &umPorts) { m_umWires       = std::move(umPorts); }
+    void AddConnections(std::unordered_map<std::string, Connection> const &umConnections) { m_umConnectionID2Connection.insert(umConnections.begin(), umConnections.end()); }
 
     void Levelize();
 

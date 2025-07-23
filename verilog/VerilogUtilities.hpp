@@ -1,7 +1,6 @@
 #ifndef PARSE_VERILOG_FILE
 #define PARSE_VERILOG_FILE
 
-#include <unordered_map>
 #include <vector>
 #include <string>
 
@@ -18,7 +17,7 @@ namespace VerilogUtility
     Verilog::Gate ExtractGateData(std::string const &sGateDataFromString);
     std::vector<std::string> ExtractPortNames(std::string const &sPortsFromString);
 
-    std::unordered_map<std::string, Verilog::Connection> ExtractConnectionNames(std::string const &sNamesFromString);
+    void ExtractConnections(std::string const &sNamesFromString, Verilog &verilogmodule);
 };
 
 #endif

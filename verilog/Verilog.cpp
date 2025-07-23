@@ -1,7 +1,6 @@
 #include "Verilog.hpp"
 
 #include <iostream>
-#include <stdexcept>
 #include <cassert>
 #include <queue> 
 
@@ -12,29 +11,22 @@
 void Verilog::AddGate(Verilog::Gate const &inputGate) 
 {
     for (auto const &sInputPort : inputGate.m_vInputPortNames) {
-        auto itFindWireFromInput(m_umWires.find(sInputPort));
-        if (itFindWireFromInput != m_umWires.end()) 
-            itFindWireFromInput->second.m_vOutgoingGates.push_back(inputGate.m_sGateIdentifier);
-    
-        auto itFindPI(m_umInputPorts.find(sInputPort));
-        if (itFindPI != m_umInputPorts.end())
-            itFindPI->second.m_vOutgoingGates.push_back(inputGate.m_sGateIdentifier);
-    }
-    
-    auto itFindWireFromOutput(m_umWires.find(inputGate.m_sOutputPortName));
-    if (itFindWireFromOutput != m_umWires.end()) {
-        assert(itFindWireFromOutput->second.m_sIncomingGate.empty());
-        itFindWireFromOutput->second.m_sIncomingGate = inputGate.m_sGateIdentifier;
+        auto itFindConnectionFromInput(m_umConnectionID2Connection.find(sInputPort));
+        if (itFindConnectionFromInput == m_umConnectionID2Connection.end()) 
+            LOG_ERROR("Gate input port \'" + sInputPort + "\" was not found in connections");
+   
+        itFindConnectionFromInput->second.m_vOutgoingGates.push_back(inputGate.m_sGateIdentifier);
     }
 
-    auto itFindPO(m_umOutputPorts.find(inputGate.m_sOutputPortName));
-    if (itFindPO != m_umOutputPorts.end()) {
-        assert(itFindPO->second.m_sIncomingGate.empty()); // Make sure only one gate drives the PO
-        itFindPO->second.m_sIncomingGate = inputGate.m_sGateIdentifier;
-    }
+    auto itFindConnectionFromOutput(m_umConnectionID2Connection.find(inputGate.m_sOutputPortName));
+    if (itFindConnectionFromOutput == m_umConnectionID2Connection.end())
+        LOG_ERROR("Gate output port \'" + inputGate.m_sOutputPortName + "\' was not found in connections");
+    
+    assert(itFindConnectionFromOutput->second.m_sIncomingGate.empty());
+    itFindConnectionFromOutput->second.m_sIncomingGate = inputGate.m_sGateIdentifier;
 
     if (!m_umGateID2Gates.insert({inputGate.m_sGateIdentifier, std::move(inputGate)}).second) 
-        throw std::runtime_error(inputGate.m_sGateIdentifier + " already exists !");
+        LOG_ERROR(inputGate.m_sGateIdentifier + " already exists !");
 }
 
 void Verilog::Levelize()
@@ -42,8 +34,8 @@ void Verilog::Levelize()
     LOG("Begin Levelization");
 
     std::queue<std::string> qGatesToAnalyze;
-    for (auto const &primaryInput : m_umInputPorts) { // Push all fanout gates from the primary input ports
-        for (auto const &sGateID : primaryInput.second.m_vOutgoingGates) 
+    for (auto const &primaryInput : m_vPrimaryInputs) { // Push all fanout gates from the primary input ports
+        for (auto const &sGateID : m_umConnectionID2Connection.at(primaryInput).m_vOutgoingGates) 
             qGatesToAnalyze.push(sGateID);
     }
 
@@ -58,27 +50,27 @@ void Verilog::Levelize()
             continue;
 
         for (auto const &sInputPort : m_umGateID2Gates.at(sCurrentGate).m_vInputPortNames) {
-            auto itFoundPrimaryInput(m_umInputPorts.find(sInputPort)), itFoundWire(m_umWires.find(sInputPort));
-           
-            if (itFoundWire != m_umWires.end() && itFoundWire->second.m_iLevelNumber == -1) 
-                break;
+            auto itFindConnectionFromInput(m_umConnectionID2Connection.find(sInputPort));
+            if (itFindConnectionFromInput->second.m_eType == ConnectionType::WIRE) {
+                if (itFindConnectionFromInput->second.m_iLevelNumber == -1)
+                    break;
 
-            if (itFoundWire != m_umWires.end()) {
-                if (itFoundWire->second.m_iLevelNumber > iFoundLargestLevelNumber) 
-                    iFoundLargestLevelNumber = itFoundWire->second.m_iLevelNumber;
+                if (itFindConnectionFromInput->second.m_iLevelNumber > iFoundLargestLevelNumber)
+                    iFoundLargestLevelNumber = itFindConnectionFromInput->second.m_iLevelNumber;
             }
 
-            if (itFoundPrimaryInput != m_umInputPorts.end()) {
-                if (itFoundPrimaryInput->second.m_iLevelNumber > iFoundLargestLevelNumber)
-                    iFoundLargestLevelNumber = itFoundPrimaryInput->second.m_iLevelNumber;
-            } 
+            if (itFindConnectionFromInput->second.m_eType == ConnectionType::PRIMARY_INPUT) {
+                if (itFindConnectionFromInput->second.m_iLevelNumber > iFoundLargestLevelNumber)
+                    iFoundLargestLevelNumber = itFindConnectionFromInput->second.m_iLevelNumber;
+            }
+
             ++uNumPortsAnalyzed;
         }
 
         if (uNumPortsAnalyzed == m_umGateID2Gates.at(sCurrentGate).m_vInputPortNames.size()) { // If all gate's input ports are thoroughly analyzed
             m_umGateID2Gates.at(sCurrentGate).m_iLevelNumber = iFoundLargestLevelNumber + 1; // Assign gate level number
-            auto itWire(m_umWires.find(m_umGateID2Gates.at(sCurrentGate).m_sOutputPortName));
-            if (itWire != m_umWires.end()) {
+            auto itWire(m_umConnectionID2Connection.find(m_umGateID2Gates.at(sCurrentGate).m_sOutputPortName));
+            if (itWire->second.m_eType == ConnectionType::WIRE) {
                 itWire->second.m_iLevelNumber = m_umGateID2Gates.at(sCurrentGate).m_iLevelNumber; // Also assign the level number to the net
                 for (auto const &sGateID : itWire->second.m_vOutgoingGates) 
                     qGatesToAnalyze.push(sGateID); // Add the fanout gates from the net
@@ -90,29 +82,12 @@ void Verilog::Levelize()
     LOG("Levelization completed");
 }
 
-
-
 void Verilog::Print() 
 {
-    std::cout << "Stored Primary Inputs " << std::endl;
-    for (auto const &PI : m_umInputPorts) {
-        std::cout << "Primary input: \'" << PI.first << "\' ";
-        std::cout << "Stored depending gates on PI : ";
-        for (auto const &inputPort : PI.second.m_vOutgoingGates)
-            std::cout << inputPort << " ";
-        std::cout << std::endl;
-    }
-
-    std::cout << "Stored Primary Outputs " << std::endl;
-    for (auto const &PO : m_umOutputPorts) {
-        std::cout << "Primary output: \'" << PO.first << "\' " << std::endl;
-        std::cout << "Stored gate driving the PO: ";
-        std::cout << PO.second.m_sIncomingGate << std::endl;
-    }
-
-    std::cout << "Stored Wires " << std::endl;
-    for (auto const &PI : m_umWires) {
-        std::cout << "   Wire name: " << PI.first << "   Level : " << PI.second.m_iLevelNumber << std::endl;
+    std::cout << "Stored Connections " << std::endl;
+    for (auto const &PI : m_umConnectionID2Connection) {
+        std::cout << "   Connection name: " << PI.first << " Connection Type: " << GetConnectionType(PI.second) << "(" << PI.second.m_eType << ")" << std::endl; 
+        std::cout << "   Level : " << PI.second.m_iLevelNumber << std::endl;
         std::cout << "   \t Gate that drives this wire: " << PI.second.m_sIncomingGate << std::endl;
         for (auto const &inputGate : PI.second.m_vOutgoingGates)
             std::cout << "\t Gates rely on this wire: " << inputGate << std::endl;
@@ -129,6 +104,4 @@ void Verilog::Print()
         std::cout <<  std::endl << "\t levelize: " << gate.second.m_iLevelNumber << std::endl;
         std::cout << std::endl << "==== " << std::endl;
     }
-
-
 }

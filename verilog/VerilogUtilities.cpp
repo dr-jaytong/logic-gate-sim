@@ -29,14 +29,20 @@ std::vector<std::string> VerilogUtility::ExtractPortNames(std::string const &sPo
     return Utility::String::Tokenize(sFilteredLine, ',');
 }
 
-std::unordered_map<std::string, Verilog::Connection> VerilogUtility::ExtractConnectionNames(std::string const &sNamesFromString)
+void VerilogUtility::ExtractConnections(std::string const &sNamesFromString, Verilog &VerilogModule)
 {
     std::string const sConnectionType(Utility::String::GetFirstWord(sNamesFromString));
     std::vector<std::string> const vConnectionNames(ExtractPortNames(Utility::String::Strip(sNamesFromString, sConnectionType)));
     std::unordered_map<std::string, Verilog::Connection> umConnections;
-    for (auto const &sName : vConnectionNames) 
-        umConnections.insert({sName, sConnectionType == "input" ? Verilog::Connection(sName, 0) /* Primary Input */ : Verilog::Connection(sName)});
-    return umConnections;
+    for (auto const &sName : vConnectionNames) { 
+        umConnections.insert({sName, sConnectionType == "input"  ? Verilog::Connection(sName, Verilog::ConnectionType::PRIMARY_INPUT) :
+                                     sConnectionType == "output" ? Verilog::Connection(sName, Verilog::ConnectionType::PRIMARY_OUTPUT) : 
+                                                                   Verilog::Connection(sName, Verilog::ConnectionType::WIRE)});
+    }
+
+    VerilogModule.AddConnections(umConnections);
+    if (sConnectionType == "input")
+        VerilogModule.AddPrimaryInputs(vConnectionNames);
 }
 
 Verilog::Gate VerilogUtility::ExtractGateData(std::string const &sGateInfoFromString)
@@ -48,8 +54,6 @@ Verilog::Gate VerilogUtility::ExtractGateData(std::string const &sGateInfoFromSt
     std::string const sLogicGateInfo(Utility::String::Strip(sGateInfoFromString, sGateType)); 
     std::string const sGateName     (Utility::String::RemoveWhiteSpace(sLogicGateInfo.substr(0, sLogicGateInfo.find_first_of('('))));
     std::string const sGatePorts    (Utility::String::RemoveWhiteSpace(Utility::String::Strip(sLogicGateInfo, sGateName)));
-
-    ///std::cout << "sGateType: \'" << sGateType << "\' sLogicGateInfo: \'" << sLogicGateInfo << "\' sGateName: \'" << sGateName << "\' ports: \'" << sGatePorts << "\'" << std::endl;
 
     std::vector<std::string> vGatePorts(ExtractPortNames(sGatePorts));
     return Verilog::Gate(sGateType, sGateName, vGatePorts.front(), std::vector<std::string>(vGatePorts.begin() + 1, vGatePorts.end()));
@@ -64,7 +68,6 @@ bool VerilogUtility::IsGate(std::string const &sKeyword)
            sKeyword == "not" ||
            sKeyword == "xor";
 }
-
 
 void VerilogUtility::ParseFile(Verilog &VerilogModule, FileHandler &VerilogFile)
 {
@@ -89,14 +92,10 @@ void VerilogUtility::ParseFile(Verilog &VerilogModule, FileHandler &VerilogFile)
             if (sLine.find(';') == std::string::npos) 
                 sLine += ParseNextVerilogLine(VerilogFile);
 
-            if (sKeyword == "input") 
-                VerilogModule.AddInputPorts(ExtractConnectionNames(sLine)); 
-            else if (sKeyword == "output") 
-                VerilogModule.AddOutputPorts(ExtractConnectionNames(sLine));
-            else if (sKeyword == "wire")
-                VerilogModule.AddWires(ExtractConnectionNames(sLine));
-            else if (IsGate(sKeyword)) 
+            if (IsGate(sKeyword)) 
                 VerilogModule.AddGate(ExtractGateData(sLine));
+            else 
+                ExtractConnections(sLine, VerilogModule);
         }
     }
     std::chrono::steady_clock::time_point const tpStopParse(std::chrono::steady_clock::now());
