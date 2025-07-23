@@ -97,7 +97,7 @@ public:
     Verilog &operator=(Verilog const &RHS)  = delete; // Disable assign
 
     void AddLogic      (Gate const &input);
-    void AddConnections(std::unordered_map<std::string, Connection> const &umConnections); // { m_umConnectionID2Connection.insert(umConnections.begin(), umConnections.end()); }
+    void AddConnections(std::unordered_map<std::string, Connection> const &umConnections); 
 
     void Levelize();
 
