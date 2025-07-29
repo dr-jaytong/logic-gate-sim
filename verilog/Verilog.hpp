@@ -76,6 +76,7 @@ public:
             , m_vInputPortNames(std::move(vInputPortNames))
             , m_iLevelNumber(-1){}
 
+        Gate() = delete;
        ~Gate() {}
 
         Gate          (Gate const &RHS) = delete;
