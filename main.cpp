@@ -1,5 +1,5 @@
 #include "CommandLineInterface.hpp"
-#include "VerilogUtilities.hpp"
+#include "Verilog.hpp"
 
 #define CPP_MODULE "MAIN"
 
@@ -12,14 +12,7 @@ int main(int argc, char *argv[])
     CLI.RegisterArgument("--filename", "STRING", true);
     CLI.Parse(argc, argv);
 
-    FileHandler VerilogFile(CLI.GetValue("--filename"));
-    Verilog VerilogModule;
-    VerilogUtility::ParseFile(VerilogModule, VerilogFile);
-
-    VerilogModule.Levelize();
+    Verilog VerilogModule(CLI.GetValue("--filename"));
     VerilogModule.Print();
-
-    ///ParseVerilogFile verilog(CLI.GetValue("--filename"));
-    ///verilog.ParseFile(VerilogModule);
     LOG("Program completed");
 }
