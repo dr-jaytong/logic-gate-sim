@@ -5,6 +5,8 @@
 #include <vector>
 #include <unordered_map>
 
+#include "FileHandler.hpp"
+
 class Verilog {
 public:
     enum ConnectionType { PRIMARY_INPUT = 0, PRIMARY_OUTPUT = 1, WIRE = 2 }; 
@@ -86,20 +88,36 @@ private:
     void AddGate (Gate const &input);
     void AddDFFPorts(std::vector<std::string> const &vDFFPorts);
     void AddPrimaryInputs(std::vector<std::string> const &vPrimaryInputs) { m_vPrimaryInputs = std::move(vPrimaryInputs); }
+    void Levelize();
+    void ParseFile(FileHandler &&VerilogFile);
+    void AddLogic      (Gate const &input);
+    void AddConnections(std::unordered_map<std::string, Connection> const &umConnections); 
+
+    std::string ParseNextVerilogLine(FileHandler &VerilogFile);
+    bool IsGate(std::string const &sLine);
+    std::vector<std::string> ExtractPortNames(std::string const &sPortsFromString);
+    std::unordered_map<std::string, Verilog::Connection> ExtractConnections(std::string const &sNamesFromString);
+    Verilog::Gate ExtractLogicData(std::string const &sGateDataFromString);
+    bool BuildModule(std::string const &sFileName);
+
 public:
 
-    explicit Verilog() : m_vPrimaryInputs(), m_umGateID2Gates(), m_umConnectionID2Connection() {}
-    
+    explicit Verilog(std::string const &sFileName) 
+        : m_vPrimaryInputs()
+        , m_umGateID2Gates()
+        , m_umConnectionID2Connection() 
+        { if (!BuildModule(sFileName)) throw std::runtime_error("Build error"); }
+
+    Verilog() = delete;
    ~Verilog() {}
 
     Verilog           (Verilog const &RHS)  = delete; // Disable copy
     Verilog           (Verilog const &&RHS) = delete; // Disable move
     Verilog &operator=(Verilog const &RHS)  = delete; // Disable assign
 
-    void AddLogic      (Gate const &input);
-    void AddConnections(std::unordered_map<std::string, Connection> const &umConnections); 
 
-    void Levelize();
+
+
 
     void Print();
 };
