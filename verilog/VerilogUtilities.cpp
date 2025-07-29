@@ -5,7 +5,7 @@
 #include "VerilogUtilities.hpp"
 #include "Utilities.hpp"
 
-#define CPP_MODULE "PARS"
+#define CPP_MODULE "VUTL"
 
 #include "Logging.hpp"
 
