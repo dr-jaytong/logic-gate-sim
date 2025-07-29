@@ -2,7 +2,6 @@
 #include <chrono>
 #include <sstream>
 #include <algorithm>
-#include <iostream>
 
 namespace Utility {
 namespace String {
@@ -80,12 +79,7 @@ std::string PrintElapsedTime(std::chrono::steady_clock::time_point const &tpEnd,
     long long const llMinutes(llTotalTimeInSeconds % 3600 / 60);
     long long const llSeconds(llTotalTimeInSeconds % 60);
     double const llMilliSeconds(llTotalTimeInSeconds % 1000);
-
-            //llTotalTimeInSeconds / 1000);
-
-    std::cout << llMinutes << ":" << llSeconds << "." << llMilliSeconds << std::endl;
-
-    return "";
+    return std::to_string(llMinutes) + ":" + std::to_string(llSeconds) + "." + std::to_string(llMilliSeconds);
 }
     
 };
