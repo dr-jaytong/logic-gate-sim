@@ -84,29 +84,30 @@ private:
     std::unordered_map<std::string, Gate>       m_umGateID2Gates;
     std::unordered_map<std::string, Connection> m_umConnectionID2Connection;
 
-    void ConvertModulePort(std::string const &sPort, ConnectionType const eType);
-    void AddGate (Gate const &input);
-    void AddDFFPorts(std::vector<std::string> const &vDFFPorts);
+    void AddGate         (Gate const &input);
+    void AddDFFPorts     (std::vector<std::string> const &vDFFPorts);
     void AddPrimaryInputs(std::vector<std::string> const &vPrimaryInputs) { m_vPrimaryInputs = std::move(vPrimaryInputs); }
+    void AddLogic        (Gate const &input);
+    void AddConnections  (std::unordered_map<std::string, Connection> const &umConnections); 
+
+    void ParseFile        (FileHandler &&VerilogFile);
+    void ConvertModulePort(std::string const &sPort, ConnectionType const eType);
+
     void Levelize();
-    void ParseFile(FileHandler &&VerilogFile);
-    void AddLogic      (Gate const &input);
-    void AddConnections(std::unordered_map<std::string, Connection> const &umConnections); 
 
     std::string ParseNextVerilogLine(FileHandler &VerilogFile);
     bool IsGate(std::string const &sLine);
     std::vector<std::string> ExtractPortNames(std::string const &sPortsFromString);
     std::unordered_map<std::string, Verilog::Connection> ExtractConnections(std::string const &sNamesFromString);
     Verilog::Gate ExtractLogicData(std::string const &sGateDataFromString);
-    bool BuildModule(std::string const &sFileName);
+    void BuildModule(std::string const &sFileName);
 
 public:
 
     explicit Verilog(std::string const &sFileName) 
         : m_vPrimaryInputs()
         , m_umGateID2Gates()
-        , m_umConnectionID2Connection() 
-        { if (!BuildModule(sFileName)) throw std::runtime_error("Build error"); }
+        , m_umConnectionID2Connection() { BuildModule(sFileName); }
 
     Verilog() = delete;
    ~Verilog() {}
@@ -114,10 +115,6 @@ public:
     Verilog           (Verilog const &RHS)  = delete; // Disable copy
     Verilog           (Verilog const &&RHS) = delete; // Disable move
     Verilog &operator=(Verilog const &RHS)  = delete; // Disable assign
-
-
-
-
 
     void Print();
 };

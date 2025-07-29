@@ -209,11 +209,10 @@ void Verilog::ParseFile(FileHandler &&VerilogFile)
     LOG("Parse and construction completed in " << Utility::PrintElapsedTime(tpStopParse, tpStartParse));
 }
 
-bool Verilog::BuildModule(std::string const &sFileName)
+void Verilog::BuildModule(std::string const &sFileName)
 {
     ParseFile(FileHandler(sFileName));
     Levelize();
-    return true;
 }
 
 void Verilog::Print() 
