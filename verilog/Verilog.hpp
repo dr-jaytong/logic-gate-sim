@@ -1,6 +1,7 @@
 #ifndef CLASS_VERILOG_HPP
 #define CLASS_VERILOG_HPP
 
+#include <ostream>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -42,12 +43,21 @@ public:
             , m_vOutgoingGates(std::move(RHS.m_vOutgoingGates))
             , m_iLevelNumber  (RHS.m_iLevelNumber)
             , m_eType         (RHS.m_eType) {}
+
+        static std::string GetConnectionType(Connection const &RHS) {
+            return RHS.m_eType == ConnectionType::PRIMARY_INPUT  ? "pi  "  :
+                   RHS.m_eType == ConnectionType::PRIMARY_OUTPUT ? "po  " : "wire"; 
+        }
+
+        friend std::ostream &operator<<(std::ostream &os, Connection const &RHS) {
+            os << "[ID: \'" << RHS.m_sName << "\', ConnectionType: " << GetConnectionType(RHS) << ", level: " << RHS.m_iLevelNumber << ", driving gate: " << RHS.m_sIncomingGate << " depending gates: ";
+            for (auto const &inputGate : RHS.m_vOutgoingGates)
+                os << inputGate << ", ";
+            os << "]";
+            return os;
+        }
     };
 
-    std::string GetConnectionType(Connection const &RHS) {
-        return RHS.m_eType == ConnectionType::PRIMARY_INPUT  ? "primary input"  :
-               RHS.m_eType == ConnectionType::PRIMARY_OUTPUT ? "primary output" : "wire"; 
-    }
 
     struct Gate {
         std::string m_sGateType;
@@ -77,6 +87,15 @@ public:
             , m_sOutputPortName(RHS.m_sOutputPortName)
             , m_vInputPortNames(std::move(RHS.m_vInputPortNames))
             , m_iLevelNumber(-1) {}
+
+        friend std::ostream &operator<<(std::ostream &out, Gate const &RHS) {
+            out << "[ID: \'" << RHS.m_sGateIdentifier << "\', Type: " << RHS.m_sGateType << ", level: " << RHS.m_iLevelNumber << ", Output port: " << RHS.m_sOutputPortName << ", input ports: ";
+            for (auto const &inputPort : RHS.m_vInputPortNames)
+                out << inputPort << ", ";
+            out << "]";
+
+            return out;
+        }
     };
 
 private:
