@@ -136,6 +136,17 @@ public:
     Verilog           (Verilog const &&RHS) = delete; // Disable move
     Verilog &operator=(Verilog const &RHS)  = delete; // Disable assign
 
+    friend std::ostream &operator<<(std::ostream &os, Verilog const &RHS) {
+        os << std::endl << "[ Stored Connections ]" << std::endl;
+        for (auto const &connection : RHS.m_umConnectionID2Connection)
+            os << connection.second << std::endl; 
+
+        os << "[ Stored Gates ]" << std::endl;
+        for (auto const &gate : RHS.m_umGateID2Gates)
+            os << gate.second << std::endl;
+
+        return os;
+    }
     void Print();
 };
 
