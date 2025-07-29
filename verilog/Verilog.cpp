@@ -218,24 +218,10 @@ void Verilog::BuildModule(std::string const &sFileName)
 void Verilog::Print() 
 {
     std::cout << "Stored Connections " << std::endl;
-    for (auto const &PI : m_umConnectionID2Connection) {
-        std::cout << "   Connection name: " << PI.first << " Connection Type: " << GetConnectionType(PI.second) << "(" << PI.second.m_eType << ")" << std::endl; 
-        std::cout << "   Level : " << PI.second.m_iLevelNumber << std::endl;
-        std::cout << "   \t Gate that drives this wire: " << PI.second.m_sIncomingGate << std::endl;
-        for (auto const &inputGate : PI.second.m_vOutgoingGates)
-            std::cout << "\t Gates rely on this wire: " << inputGate << std::endl;
-        std::cout << std::endl;
-    }
+    for (auto const &connection : m_umConnectionID2Connection)
+        std::cout << connection.second << std::endl; 
 
     std::cout << "Stored Gates " << std::endl;
-    for (auto const &gate : m_umGateID2Gates) {
-        std::cout << "\t Gate ID: " << gate.second.m_sGateIdentifier << std::endl;
-        std::cout << "\t Gate Type: " << gate.second.m_sGateType << std::endl;
-        std::cout << "\t Output port: " << gate.second.m_sOutputPortName << std::endl;
-        std::cout << "\t input port names: "; 
-        for (auto const &inputPort : gate.second.m_vInputPortNames)
-            std::cout << inputPort << ", ";
-        std::cout <<  std::endl << "\t levelize: " << gate.second.m_iLevelNumber << std::endl;
-        std::cout << std::endl << "==== " << std::endl;
-    }
+    for (auto const &gate : m_umGateID2Gates)
+        std::cout << gate.second << std::endl;
 }
