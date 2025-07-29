@@ -13,6 +13,6 @@ int main(int argc, char *argv[])
     CLI.Parse(argc, argv);
 
     Verilog VerilogModule(CLI.GetValue("--filename"));
-    VerilogModule.Print();
+    LOG(VerilogModule);
     LOG("Program completed");
 }
