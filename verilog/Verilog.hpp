@@ -5,11 +5,13 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <queue>
+#include <bitset>
 
 #include "FileHandler.hpp"
 
 class Verilog {
-public:
+private:
     enum ConnectionType { PRIMARY_INPUT = 0, PRIMARY_OUTPUT = 1, WIRE = 2 }; 
 
     struct Connection { // Primary Input, Primary Output, or Internal Wire
@@ -17,17 +19,20 @@ public:
         std::string              m_sIncomingGate; // For the gate that drives the signal of this connection (wire, primary output) 
         std::vector<std::string> m_vOutgoingGates; // For gates that depend on this connection (wire, primary input)
 
-        int            m_iLevelNumber;
+        int m_iLevelNumber;
+        int m_iNetAddress;
+
         ConnectionType m_eType;
 
         Connection() = delete;
         Connection &operator=(Connection const &RHS) = delete;
 
-        Connection(std::string const &sName, ConnectionType const eType) 
+        Connection(std::string const &sName, ConnectionType const eType, int const iNetAddress) 
             : m_sName(sName)
             , m_sIncomingGate("")
             , m_vOutgoingGates()
             , m_iLevelNumber(eType == ConnectionType::PRIMARY_INPUT ? 0 : -1)
+            , m_iNetAddress(iNetAddress)
             , m_eType(eType) {}
 
         Connection(Connection const &RHS)
@@ -35,6 +40,7 @@ public:
             , m_sIncomingGate (RHS.m_sIncomingGate)
             , m_vOutgoingGates(std::move(RHS.m_vOutgoingGates))
             , m_iLevelNumber  (RHS.m_iLevelNumber)
+            , m_iNetAddress   (RHS.m_iNetAddress)
             , m_eType         (RHS.m_eType){}
 
         Connection(Connection const &&RHS)
@@ -42,6 +48,7 @@ public:
             , m_sIncomingGate (RHS.m_sIncomingGate)
             , m_vOutgoingGates(std::move(RHS.m_vOutgoingGates))
             , m_iLevelNumber  (RHS.m_iLevelNumber)
+            , m_iNetAddress   (RHS.m_iNetAddress)
             , m_eType         (RHS.m_eType) {}
 
         static std::string GetConnectionType(Connection const &RHS) {
@@ -50,7 +57,7 @@ public:
         }
 
         friend std::ostream &operator<<(std::ostream &os, Connection const &RHS) {
-            os << "[ID: \'" << RHS.m_sName << "\', ConnectionType: " << GetConnectionType(RHS) << ", level: " << RHS.m_iLevelNumber << ", driving gate: " << RHS.m_sIncomingGate << " depending gates: ";
+            os << "[ID: \'" << RHS.m_sName << "\', ConnectionType: " << GetConnectionType(RHS) << ", NetAddr: " << RHS.m_iNetAddress << " level: " << RHS.m_iLevelNumber << ", driving gate: " << RHS.m_sIncomingGate << " depending gates: ";
             for (auto const &inputGate : RHS.m_vOutgoingGates)
                 os << inputGate << ", ";
             os << "]";
@@ -58,36 +65,28 @@ public:
         }
     };
 
-
     struct Gate {
+        
         std::string m_sGateType;
         std::string m_sGateIdentifier;
         std::string m_sOutputPortName;
+        int         m_iLevelNumber;
+
         std::vector<std::string> m_vInputPortNames;
-        int m_iLevelNumber;
 
         Gate(std::string              const &sGateType, 
              std::string              const &sGateIdentifier, 
              std::string              const sOutputPortName, 
              std::vector<std::string> const &vInputPortNames) 
-            : m_sGateType(sGateType)
+            : m_sGateType      (sGateType)
             , m_sGateIdentifier(sGateIdentifier)
             , m_sOutputPortName(sOutputPortName)
-            , m_vInputPortNames(std::move(vInputPortNames))
-            , m_iLevelNumber(-1){}
+            , m_iLevelNumber   (-1)
+            , m_vInputPortNames(std::move(vInputPortNames)) {}
 
+        Gate &operator=(Gate const &RHS) = delete;
         Gate() = delete;
        ~Gate() {}
-
-        Gate          (Gate const &RHS) = delete;
-        Gate operator=(Gate const &RHS) = delete;
-
-        Gate(Gate const &&RHS)
-            : m_sGateType      (RHS.m_sGateType)
-            , m_sGateIdentifier(RHS.m_sGateIdentifier)
-            , m_sOutputPortName(RHS.m_sOutputPortName)
-            , m_vInputPortNames(std::move(RHS.m_vInputPortNames))
-            , m_iLevelNumber(-1) {}
 
         friend std::ostream &operator<<(std::ostream &out, Gate const &RHS) {
             out << "[ID: \'" << RHS.m_sGateIdentifier << "\', Type: " << RHS.m_sGateType << ", level: " << RHS.m_iLevelNumber << ", Output port: " << RHS.m_sOutputPortName << ", input ports: ";
@@ -99,35 +98,74 @@ public:
         }
     };
 
+    struct ModuleCircuitData {
+        std::vector<std::string>                    vPrimaryInputs;
+        std::unordered_map<std::string, Gate>       umGateID2Gates;
+        std::unordered_map<std::string, Connection> umConnectionID2Connection;
+
+        ModuleCircuitData()
+            : vPrimaryInputs()
+            , umGateID2Gates()
+            , umConnectionID2Connection() {}
+
+        ModuleCircuitData           (ModuleCircuitData const &RHS)  = delete;
+        ModuleCircuitData           (ModuleCircuitData const &&RHS) = delete;
+        ModuleCircuitData &operator=(ModuleCircuitData const &RHS)  = delete;
+    };
+
+
+    struct EncodedCircuitData {
+        std::vector<int>            vNets;
+        std::vector<std::bitset<8>> vGates;
+
+        EncodedCircuitData()
+            : vNets()
+            , vGates() {}
+
+        EncodedCircuitData           (EncodedCircuitData const &RHS)  = delete;
+        EncodedCircuitData           (EncodedCircuitData const &&RHS) = delete;
+        EncodedCircuitData &operator=(EncodedCircuitData const &RHS)  = delete;
+    };
+
 private:
-    std::vector<std::string>                    m_vPrimaryInputs;
-    std::unordered_map<std::string, Gate>       m_umGateID2Gates;
-    std::unordered_map<std::string, Connection> m_umConnectionID2Connection;
+    ModuleCircuitData  m_ModuleData;
+    EncodedCircuitData m_EncodedData;
 
     void AddGate         (Gate const &input);
     void AddDFFPorts     (std::vector<std::string> const &vDFFPorts);
-    void AddPrimaryInputs(std::vector<std::string> const &vPrimaryInputs) { m_vPrimaryInputs = std::move(vPrimaryInputs); }
+    void AddPrimaryInputs(std::vector<std::string> const &vPrimaryInputs) { m_ModuleData.vPrimaryInputs = std::move(vPrimaryInputs); }
     void AddLogic        (Gate const &input);
     void AddConnections  (std::unordered_map<std::string, Connection> const &umConnections); 
 
     void ParseFile        (FileHandler &&VerilogFile);
     void ConvertModulePort(std::string const &sPort, ConnectionType const eType);
+    
+    using Level_2_GateID = std::pair<int, std::string>;
 
-    void Levelize();
+    struct MinHeapComparator{
+        bool operator()(Level_2_GateID const &A, Level_2_GateID const &B) const {
+            return A.first > B.first;
+        }
+    };
+    using PQLevel2GateID = std::priority_queue<Level_2_GateID, std::vector<Level_2_GateID>, MinHeapComparator>;
+    PQLevel2GateID Levelize();
+
+    void GenerateGateData(std::priority_queue<Level_2_GateID, std::vector<Level_2_GateID>, MinHeapComparator> &&in);
 
     std::string ParseNextVerilogLine(FileHandler &VerilogFile);
     bool IsGate(std::string const &sLine);
+    std::bitset<8> const GetGateEncoding(std::string const &sGateType);
+
     std::vector<std::string> ExtractPortNames(std::string const &sPortsFromString);
-    std::unordered_map<std::string, Verilog::Connection> ExtractConnections(std::string const &sNamesFromString);
+    std::unordered_map<std::string, Verilog::Connection> ExtractConnections(std::string const &sNamesFromString, int &iNetAddress);
     Verilog::Gate ExtractLogicData(std::string const &sGateDataFromString);
     void BuildModule(std::string const &sFileName);
 
 public:
 
     explicit Verilog(std::string const &sFileName) 
-        : m_vPrimaryInputs()
-        , m_umGateID2Gates()
-        , m_umConnectionID2Connection() { BuildModule(sFileName); }
+        : m_ModuleData()
+        , m_EncodedData() { BuildModule(sFileName); }
 
     Verilog() = delete;
    ~Verilog() {}
@@ -138,11 +176,11 @@ public:
 
     friend std::ostream &operator<<(std::ostream &os, Verilog const &RHS) {
         os << std::endl << "[ Stored Connections ]" << std::endl;
-        for (auto const &connection : RHS.m_umConnectionID2Connection)
+        for (auto const &connection : RHS.m_ModuleData.umConnectionID2Connection)
             os << connection.second << std::endl; 
 
         os << "[ Stored Gates ]" << std::endl;
-        for (auto const &gate : RHS.m_umGateID2Gates)
+        for (auto const &gate : RHS.m_ModuleData.umGateID2Gates)
             os << gate.second << std::endl;
 
         return os;
