@@ -74,6 +74,7 @@ void Verilog::AddDFFPorts(std::vector<std::string> const &vDFFPorts)
 {
     assert(vDFFPorts.size() == 2);
     ConvertModulePort(vDFFPorts[0], ConnectionType::PRIMARY_INPUT);
+    m_ModuleData.vPrimaryInputs.push_back(vDFFPorts[0]);
     ConvertModulePort(vDFFPorts[1],  ConnectionType::PRIMARY_OUTPUT);
 }
 
@@ -101,7 +102,7 @@ std::unordered_map<std::string, Verilog::Connection> Verilog::ExtractConnections
     std::unordered_map<std::string, Verilog::Connection> umConnections;
     for (auto const &sName : vConnectionNames) {
         if (Utility::String::ToLowerCase(sName) == "ck" || Utility::String::ToLowerCase(sName) == "clk") {
-            std::cout << "Skipping clock signal" << std::endl;
+            /////std::cout << "Skipping clock signal" << std::endl;
             continue;
         }
 
@@ -141,7 +142,9 @@ Verilog::PQLevel2GateID Verilog::Levelize()
     while (!qGatesToAnalyze.empty()) {
         std::string const sCurrentGate(qGatesToAnalyze.front());
         qGatesToAnalyze.pop();
-    
+   
+        ///std::cout << "Analyzing current gate: " << m_ModuleData.umGateID2Gates.at(sCurrentGate) << std::endl;
+
         int iFoundLargestLevelNumber(-1);
         size_t uNumPortsAnalyzed(0);
 
@@ -151,14 +154,19 @@ Verilog::PQLevel2GateID Verilog::Levelize()
         for (auto const &sInputPort : m_ModuleData.umGateID2Gates.at(sCurrentGate).m_vInputPortNames) {
             auto itFindConnectionFromInput(m_ModuleData.umConnectionID2Connection.find(sInputPort));
             if (itFindConnectionFromInput->second.m_eType == ConnectionType::WIRE) {
-                if (itFindConnectionFromInput->second.m_iLevelNumber == -1)
+                ////std::cout << "sInputPort: " << sInputPort << " is wire connection ";
+                if (itFindConnectionFromInput->second.m_iLevelNumber == -1) {
+                    ////std::cout << " not assigned to a level number!" << std::endl;
                     break;
+                }
 
-                if (itFindConnectionFromInput->second.m_iLevelNumber > iFoundLargestLevelNumber)
+                if (itFindConnectionFromInput->second.m_iLevelNumber > iFoundLargestLevelNumber) {
                     iFoundLargestLevelNumber = itFindConnectionFromInput->second.m_iLevelNumber;
+                }
             }
 
             if (itFindConnectionFromInput->second.m_eType == ConnectionType::PRIMARY_INPUT) {
+                ////std::cout << "sInputPort: " << sInputPort << " is a primary INPUT " << std::endl;
                 if (itFindConnectionFromInput->second.m_iLevelNumber > iFoundLargestLevelNumber)
                     iFoundLargestLevelNumber = itFindConnectionFromInput->second.m_iLevelNumber;
             }
@@ -169,14 +177,19 @@ Verilog::PQLevel2GateID Verilog::Levelize()
         if (uNumPortsAnalyzed == m_ModuleData.umGateID2Gates.at(sCurrentGate).m_vInputPortNames.size()) { // If all gate's input ports are thoroughly analyzed
             m_ModuleData.umGateID2Gates.at(sCurrentGate).m_iLevelNumber = iFoundLargestLevelNumber + 1; // Assign gate level number
             pqLevelizedGates.push(Level_2_GateID(m_ModuleData.umGateID2Gates.at(sCurrentGate).m_iLevelNumber, sCurrentGate)); ; // Create a copy
+            /////std::cout << "ASSIGNING GATE: " << sCurrentGate << " to level number: " << iFoundLargestLevelNumber + 1 << std::endl;
 
             auto itWire(m_ModuleData.umConnectionID2Connection.find(m_ModuleData.umGateID2Gates.at(sCurrentGate).m_sOutputPortName));
             if (itWire->second.m_eType == ConnectionType::WIRE) {
                 itWire->second.m_iLevelNumber = m_ModuleData.umGateID2Gates.at(sCurrentGate).m_iLevelNumber; // Also assign the level number to the net
-                for (auto const &sGateID : itWire->second.m_vOutgoingGates) 
+                /////std::cout << "Assigning WIRE: " << itWire->first << std::endl;                                                                                            
+                for (auto const &sGateID : itWire->second.m_vOutgoingGates) { 
                     qGatesToAnalyze.push(sGateID); // Add the fanout gates from the net
+                    /////std::cout << "Pushing next gate: " << sGateID << std::endl;
+                }
             }
         } else {
+            ////std::cout << "Readding gate: " << sCurrentGate << std::endl;
             qGatesToAnalyze.push(sCurrentGate); // Re-add the current gate because there are still wires with unassigned level numbers
         }
     }
@@ -236,7 +249,7 @@ void Verilog::GenerateGateData(PQLevel2GateID &&pqLevelizedGates)
     m_EncodedData.vNets.resize(m_ModuleData.umConnectionID2Connection.size(), 0);
 
     while (!pqLevelizedGates.empty()) {
-        std::cout << pqLevelizedGates.top().first << ", " << pqLevelizedGates.top().second << std::endl; 
+        ////std::cout << pqLevelizedGates.top().first << ", " << pqLevelizedGates.top().second << std::endl; 
         std::string const sGateID(pqLevelizedGates.top().second);
         m_EncodedData.vGates.emplace_back(GetGateEncoding(m_ModuleData.umGateID2Gates.at(sGateID).m_sGateType));
 
@@ -244,8 +257,8 @@ void Verilog::GenerateGateData(PQLevel2GateID &&pqLevelizedGates)
         pqLevelizedGates.pop();
     }
 
-    for (auto const &GateCode : m_EncodedData.vGates)
-        std::cout << GateCode << std::endl;
+    /////for (auto const &GateCode : m_EncodedData.vGates)
+    /////    std::cout << GateCode << std::endl;
 
 }
 
