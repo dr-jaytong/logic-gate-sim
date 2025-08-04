@@ -15,6 +15,11 @@
     std::cerr << sErrorMessage.str(); \
     throw std::runtime_error(sErrorMessage.str()); }\
 
+#define LOG_WARNING(msg) {\
+    std::stringstream sErrorMessage;\
+    sErrorMessage << CPP_MODULE << " WARNING(" << __LINE__<< "): " <<  msg << "\n"; \
+}\
+
 // Assertion check
 #define LOG_ASSERT(cond, msg)\
     do { \
