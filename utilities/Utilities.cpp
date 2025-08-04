@@ -19,7 +19,9 @@ std::string GetFirstWord(std::string const &sLine)
 
 std::string RemoveWhiteSpace(std::string const &sLine)
 {
-    return Strip(sLine, ' ');
+    std::string sCleanLine(sLine);
+    sCleanLine.erase(std::remove_if(sCleanLine.begin(), sCleanLine.end(), ::isspace), sCleanLine.end());
+    return sCleanLine;
 }
 
 std::string Strip(std::string const &sLine, std::vector<char> const &vPatterns)
