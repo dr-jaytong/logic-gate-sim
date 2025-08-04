@@ -12,7 +12,7 @@
 
 class Verilog {
 private:
-    enum ConnectionType { PRIMARY_INPUT = 0, PRIMARY_OUTPUT = 1, WIRE = 2 }; 
+    enum ConnectionType { PRIMARY_INPUT = 0, PRIMARY_OUTPUT = 1, WIRE = 2, PRIMARY_OUTPUT_DFF = 3, PRIMARY_INPUT_DFF = 4 }; 
 
     struct Connection { // Primary Input, Primary Output, or Internal Wire
         std::string              m_sName;
@@ -51,13 +51,16 @@ private:
             , m_iNetAddress   (RHS.m_iNetAddress)
             , m_eType         (RHS.m_eType) {}
 
-        static std::string GetConnectionType(Connection const &RHS) {
-            return RHS.m_eType == ConnectionType::PRIMARY_INPUT  ? "pi  "  :
-                   RHS.m_eType == ConnectionType::PRIMARY_OUTPUT ? "po  " : "wire"; 
+        static std::string GetConnectionType(Connection const RHS) {
+            return RHS.m_eType == ConnectionType::PRIMARY_INPUT  ?     "pi    " :
+                   RHS.m_eType == ConnectionType::PRIMARY_OUTPUT ?     "po    " :
+                   RHS.m_eType == ConnectionType::PRIMARY_OUTPUT_DFF ? "po-dff" : 
+                   RHS.m_eType == ConnectionType::PRIMARY_INPUT_DFF  ? "pi-dff" : 
+                   "wire"; 
         }
 
         friend std::ostream &operator<<(std::ostream &os, Connection const &RHS) {
-            os << "[ID: \'" << RHS.m_sName << "\', ConnectionType: " << GetConnectionType(RHS) << ", NetAddr: " << RHS.m_iNetAddress << " level: " << RHS.m_iLevelNumber << ", driving gate: " << RHS.m_sIncomingGate << " depending gates: ";
+            os << "[ID: \'" << RHS.m_sName << "\', ConnectionType: " << GetConnectionType(RHS) << ", NetAddr: " << RHS.m_iNetAddress << " level: " << RHS.m_iLevelNumber << ", driving gate: " << RHS.m_sIncomingGate << ", depending gates: ";
             for (auto const &inputGate : RHS.m_vOutgoingGates)
                 os << inputGate << ", ";
             os << "]";
@@ -102,11 +105,13 @@ private:
         std::vector<std::string>                    vPrimaryInputs;
         std::unordered_map<std::string, Gate>       umGateID2Gates;
         std::unordered_map<std::string, Connection> umConnectionID2Connection;
+        std::unordered_map<std::string, int>        umGateType2TotalInstance;
 
         ModuleCircuitData()
             : vPrimaryInputs()
             , umGateID2Gates()
-            , umConnectionID2Connection() {}
+            , umConnectionID2Connection()
+            , umGateType2TotalInstance() {}
 
         ModuleCircuitData           (ModuleCircuitData const &RHS)  = delete;
         ModuleCircuitData           (ModuleCircuitData const &&RHS) = delete;
@@ -137,8 +142,9 @@ private:
     void AddLogic        (Gate const &input);
     void AddConnections  (std::unordered_map<std::string, Connection> const &umConnections); 
 
+    void ResolveWireFanouts();
     void ParseFile        (FileHandler &&VerilogFile);
-    void ConvertModulePort(std::string const &sPort, ConnectionType const eType);
+    bool ConvertModulePort(std::string const &sPort, ConnectionType const eType);
     
     using Level_2_GateID = std::pair<int, std::string>;
 
@@ -185,7 +191,8 @@ public:
 
         return os;
     }
-    void Print();
+
+    void PrintModuleStats();
 };
 
 #endif

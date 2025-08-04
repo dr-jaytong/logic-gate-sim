@@ -2,9 +2,9 @@
 #include "Utilities.hpp"
 
 #include <algorithm>
-#include <iostream>
 #include <cassert>
 #include <queue> 
+#include <format>
 
 #define CPP_MODULE "VERL"
 
@@ -37,44 +37,58 @@ std::bitset<8> const Verilog::GetGateEncoding(std::string const &sGateType)
 
 void Verilog::AddGate(Verilog::Gate const &inputGate) 
 {
-    for (auto const &sInputPort : inputGate.m_vInputPortNames) {
-        auto itFindConnectionFromInput(m_ModuleData.umConnectionID2Connection.find(sInputPort));
-        if (itFindConnectionFromInput == m_ModuleData.umConnectionID2Connection.end()) 
-            LOG_ERROR("Gate input port \'" + sInputPort + "\" was not found in connections");
-   
-        itFindConnectionFromInput->second.m_vOutgoingGates.push_back(inputGate.m_sGateIdentifier);
-    }
-
+    // First, find gate's output if it is part of the primary output connection
     auto itFindConnectionFromOutput(m_ModuleData.umConnectionID2Connection.find(inputGate.m_sOutputPortName));
-    if (itFindConnectionFromOutput == m_ModuleData.umConnectionID2Connection.end())
-        LOG_ERROR("Gate output port \'" + inputGate.m_sOutputPortName + "\' was not found in connections");
-    
-    assert(itFindConnectionFromOutput->second.m_sIncomingGate.empty());
-    itFindConnectionFromOutput->second.m_sIncomingGate = inputGate.m_sGateIdentifier;
+    if (itFindConnectionFromOutput != m_ModuleData.umConnectionID2Connection.end()) {
+        if (itFindConnectionFromOutput->second.m_eType == ConnectionType::PRIMARY_OUTPUT || 
+            itFindConnectionFromOutput->second.m_eType == ConnectionType::PRIMARY_OUTPUT_DFF) {
+            assert(itFindConnectionFromOutput->second.m_sIncomingGate.empty());
+            itFindConnectionFromOutput->second.m_sIncomingGate = inputGate.m_sGateIdentifier;
+        } else {
+            LOG_ERROR("Fatal error! " + itFindConnectionFromOutput->first + " was already created but not a primary output!");
+        }
+    } else {
+        m_ModuleData.umConnectionID2Connection.insert({inputGate.m_sOutputPortName, Verilog::Connection(inputGate.m_sOutputPortName, Verilog::ConnectionType::WIRE, 0)});
+        m_ModuleData.umConnectionID2Connection.at(inputGate.m_sOutputPortName).m_sIncomingGate = inputGate.m_sGateIdentifier;
+    }
 
     if (!m_ModuleData.umGateID2Gates.insert({inputGate.m_sGateIdentifier, std::move(inputGate)}).second) 
         LOG_ERROR(inputGate.m_sGateIdentifier + " already exists !");
 }
+
+void Verilog::ResolveWireFanouts()
+{
+    for (auto const &Gate : m_ModuleData.umGateID2Gates) {
+        for (auto const &port : Gate.second.m_vInputPortNames) {
+            auto itFindConnectionFromInput(m_ModuleData.umConnectionID2Connection.find(port));
+            if (itFindConnectionFromInput == m_ModuleData.umConnectionID2Connection.end())
+                LOG_ERROR("Fatal error, Gate's input port: " + port + " was not found in connections!");
+
+            itFindConnectionFromInput->second.m_vOutgoingGates.push_back(Gate.second.m_sGateIdentifier);
+        }
+    }
+}
+
 
 void Verilog::AddLogic(Verilog::Gate const &inputGate)
 {
     inputGate.m_sGateType == "dff" ? AddDFFPorts(inputGate.m_vInputPortNames) : AddGate(inputGate);
 }
 
-void Verilog::ConvertModulePort(std::string const &sPort, ConnectionType const eType)
+bool Verilog::ConvertModulePort(std::string const &sPort, ConnectionType const eType)
 {
-    auto itFindConnection(m_ModuleData.umConnectionID2Connection.find(sPort));
-    if (itFindConnection == m_ModuleData.umConnectionID2Connection.end())
-        LOG_ERROR(sPort + " was not found in connections!");
-    itFindConnection->second.m_eType = eType; 
-    itFindConnection->second.m_iLevelNumber = eType == ConnectionType::PRIMARY_INPUT ? 0 : -1;
+    return m_ModuleData.umConnectionID2Connection.insert({sPort, Verilog::Connection(sPort, eType, 0)}).second;
 }
 
 void Verilog::AddDFFPorts(std::vector<std::string> const &vDFFPorts) 
 {
     assert(vDFFPorts.size() == 2);
-    ConvertModulePort(vDFFPorts[0], ConnectionType::PRIMARY_INPUT);
-    ConvertModulePort(vDFFPorts[1],  ConnectionType::PRIMARY_OUTPUT);
+    if (!ConvertModulePort(vDFFPorts[0], ConnectionType::PRIMARY_INPUT_DFF))
+        LOG_WARNING("Unable to convert module port " + vDFFPorts[0] + " as primary input" );
+    m_ModuleData.vPrimaryInputs.push_back(vDFFPorts[0]);
+    
+    if (!ConvertModulePort(vDFFPorts[1],  ConnectionType::PRIMARY_OUTPUT_DFF))
+        LOG_WARNING("Unable to convert module port " + vDFFPorts[1] + " as primary output");
 }
 
 void Verilog::AddConnections(std::unordered_map<std::string, Connection> const &umConnections)
@@ -90,7 +104,7 @@ void Verilog::AddConnections(std::unordered_map<std::string, Connection> const &
 
 std::vector<std::string> Verilog::ExtractPortNames(std::string const &sPortsFromString)
 {
-    std::string const sFilteredLine(Utility::String::Strip(sPortsFromString, std::vector<char>({' ', ';', ')', '('})));
+    std::string const sFilteredLine(Utility::String::Strip(Utility::String::RemoveWhiteSpace(sPortsFromString), std::vector<char>({' ', ';', ')', '('})));
     return Utility::String::Tokenize(sFilteredLine, ',');
 }
 
@@ -101,7 +115,7 @@ std::unordered_map<std::string, Verilog::Connection> Verilog::ExtractConnections
     std::unordered_map<std::string, Verilog::Connection> umConnections;
     for (auto const &sName : vConnectionNames) {
         if (Utility::String::ToLowerCase(sName) == "ck" || Utility::String::ToLowerCase(sName) == "clk") {
-            std::cout << "Skipping clock signal" << std::endl;
+            /////std::cout << "Skipping clock signal" << std::endl;
             continue;
         }
 
@@ -118,18 +132,29 @@ Verilog::Gate Verilog::ExtractLogicData(std::string const &sGateInfoFromString)
 {
     // Gate level netlist is in the form of: gate_type gate_ID(output_net, input_net1, input_net2, ....);
 
-    std::string const sGateType     (Utility::String::GetFirstWord(sGateInfoFromString)); 
+    std::string       sGateType     (Utility::String::GetFirstWord(sGateInfoFromString)); 
     std::string const sLogicGateInfo(Utility::String::Strip(sGateInfoFromString, sGateType)); 
     std::string const sGateName     (Utility::String::RemoveWhiteSpace(sLogicGateInfo.substr(0, sLogicGateInfo.find_first_of('('))));
     std::string const sGatePorts    (Utility::String::RemoveWhiteSpace(Utility::String::Strip(sLogicGateInfo, sGateName)));
 
-    std::vector<std::string> vGatePorts(ExtractPortNames(sGatePorts));
-    return Verilog::Gate(sGateType, sGateName, vGatePorts.front(), std::vector<std::string>(vGatePorts.begin() + 1, vGatePorts.end()));
+    std::vector<std::string> const vGatePorts(ExtractPortNames(sGatePorts));
+
+    std::string const sOutputPort(vGatePorts.front());
+    std::vector<std::string> const vInputPorts(vGatePorts.begin() + 1, vGatePorts.end());
+    if (sGateType != "dff")
+        sGateType += std::to_string(vInputPorts.size()); // Append number of inputs (e.g., and2, and3, and4); 
+
+    if (m_ModuleData.umGateType2TotalInstance.find(sGateType) == m_ModuleData.umGateType2TotalInstance.end())
+        m_ModuleData.umGateType2TotalInstance.insert({sGateType, 0});
+    m_ModuleData.umGateType2TotalInstance.at(sGateType) += 1;
+
+    return Verilog::Gate(sGateType, sGateName, sOutputPort, vInputPorts);
 }
 
 Verilog::PQLevel2GateID Verilog::Levelize()
 {
     LOG("Begin Levelization");
+    std::chrono::steady_clock::time_point const tpStartLevelize(std::chrono::steady_clock::now());
 
     PQLevel2GateID pqLevelizedGates;
     std::queue<std::string> qGatesToAnalyze;
@@ -141,7 +166,7 @@ Verilog::PQLevel2GateID Verilog::Levelize()
     while (!qGatesToAnalyze.empty()) {
         std::string const sCurrentGate(qGatesToAnalyze.front());
         qGatesToAnalyze.pop();
-    
+   
         int iFoundLargestLevelNumber(-1);
         size_t uNumPortsAnalyzed(0);
 
@@ -151,11 +176,13 @@ Verilog::PQLevel2GateID Verilog::Levelize()
         for (auto const &sInputPort : m_ModuleData.umGateID2Gates.at(sCurrentGate).m_vInputPortNames) {
             auto itFindConnectionFromInput(m_ModuleData.umConnectionID2Connection.find(sInputPort));
             if (itFindConnectionFromInput->second.m_eType == ConnectionType::WIRE) {
-                if (itFindConnectionFromInput->second.m_iLevelNumber == -1)
+                if (itFindConnectionFromInput->second.m_iLevelNumber == -1) {
                     break;
+                }
 
-                if (itFindConnectionFromInput->second.m_iLevelNumber > iFoundLargestLevelNumber)
+                if (itFindConnectionFromInput->second.m_iLevelNumber > iFoundLargestLevelNumber) {
                     iFoundLargestLevelNumber = itFindConnectionFromInput->second.m_iLevelNumber;
+                }
             }
 
             if (itFindConnectionFromInput->second.m_eType == ConnectionType::PRIMARY_INPUT) {
@@ -171,17 +198,15 @@ Verilog::PQLevel2GateID Verilog::Levelize()
             pqLevelizedGates.push(Level_2_GateID(m_ModuleData.umGateID2Gates.at(sCurrentGate).m_iLevelNumber, sCurrentGate)); ; // Create a copy
 
             auto itWire(m_ModuleData.umConnectionID2Connection.find(m_ModuleData.umGateID2Gates.at(sCurrentGate).m_sOutputPortName));
-            if (itWire->second.m_eType == ConnectionType::WIRE) {
-                itWire->second.m_iLevelNumber = m_ModuleData.umGateID2Gates.at(sCurrentGate).m_iLevelNumber; // Also assign the level number to the net
-                for (auto const &sGateID : itWire->second.m_vOutgoingGates) 
-                    qGatesToAnalyze.push(sGateID); // Add the fanout gates from the net
-            }
-        } else {
+            itWire->second.m_iLevelNumber = m_ModuleData.umGateID2Gates.at(sCurrentGate).m_iLevelNumber; // Also assign the level number to the net
+            for (auto const &sGateID : itWire->second.m_vOutgoingGates) 
+                qGatesToAnalyze.push(sGateID); // Add the fanout gates from the net
+        } else 
             qGatesToAnalyze.push(sCurrentGate); // Re-add the current gate because there are still wires with unassigned level numbers
-        }
     }
 
-    LOG("Levelization completed");
+    std::chrono::steady_clock::time_point const tpStopLevelize(std::chrono::steady_clock::now());
+    LOG("Levelization completed in " << Utility::PrintElapsedTime(tpStopLevelize, tpStartLevelize));
     return pqLevelizedGates;
 }
 
@@ -209,10 +234,7 @@ void Verilog::ParseFile(FileHandler &&VerilogFile)
     while (!VerilogFile.eof()) {
         std::string sLine(VerilogFile.GetNextLine());
 
-        if (sLine.empty() ||
-            sLine.find("module") != std::string::npos ||
-            sLine.find("endmodule") != std::string::npos ||
-            sLine.find("//") != std::string::npos)
+        if (sLine.empty() || sLine.find("//") != std::string::npos)
             continue;
 
         std::string const sKeyword(Utility::String::GetFirstWord(sLine));
@@ -220,7 +242,7 @@ void Verilog::ParseFile(FileHandler &&VerilogFile)
         // Once reached here, verilog line could be either 'input', 'output', 'wire', or gate
         // We have to parse all the way to the next ';'
 
-        if (sKeyword == "input" || sKeyword == "output" || sKeyword == "wire" || Verilog::IsGate(sKeyword)) {
+        if (sKeyword == "input" || sKeyword == "output" || Verilog::IsGate(sKeyword)) {
             if (sLine.find(';') == std::string::npos) 
                 sLine += ParseNextVerilogLine(VerilogFile);
 
@@ -228,6 +250,7 @@ void Verilog::ParseFile(FileHandler &&VerilogFile)
         }
     }
     std::chrono::steady_clock::time_point const tpStopParse(std::chrono::steady_clock::now());
+    ResolveWireFanouts();
     LOG("Parse and construction completed in " << Utility::PrintElapsedTime(tpStopParse, tpStartParse));
 }
 
@@ -236,7 +259,7 @@ void Verilog::GenerateGateData(PQLevel2GateID &&pqLevelizedGates)
     m_EncodedData.vNets.resize(m_ModuleData.umConnectionID2Connection.size(), 0);
 
     while (!pqLevelizedGates.empty()) {
-        std::cout << pqLevelizedGates.top().first << ", " << pqLevelizedGates.top().second << std::endl; 
+        ////std::cout << pqLevelizedGates.top().first << ", " << pqLevelizedGates.top().second << std::endl; 
         std::string const sGateID(pqLevelizedGates.top().second);
         m_EncodedData.vGates.emplace_back(GetGateEncoding(m_ModuleData.umGateID2Gates.at(sGateID).m_sGateType));
 
@@ -244,8 +267,8 @@ void Verilog::GenerateGateData(PQLevel2GateID &&pqLevelizedGates)
         pqLevelizedGates.pop();
     }
 
-    for (auto const &GateCode : m_EncodedData.vGates)
-        std::cout << GateCode << std::endl;
+    /////for (auto const &GateCode : m_EncodedData.vGates)
+    /////    std::cout << GateCode << std::endl;
 
 }
 
@@ -255,13 +278,12 @@ void Verilog::BuildModule(std::string const &sFileName)
     GenerateGateData(Levelize());
 }
 
-void Verilog::Print() 
+void Verilog::PrintModuleStats() 
 {
-    std::cout << "Stored Connections " << std::endl;
-    for (auto const &connection : m_ModuleData.umConnectionID2Connection)
-        LOG(connection.second);
+    LOG(std::format("{:>10} | {:^10}", "Gate Type", "Total")); // Header file
+    LOG(std::format("{:*>10} | {:*^10}", "", ""));
 
-    std::cout << "Stored Gates " << std::endl;
-    for (auto const &gate :m_ModuleData.umGateID2Gates)
-        LOG(gate.second);
+    for (auto const &elem : m_ModuleData.umGateType2TotalInstance) {
+        LOG(std::format("{:>10} | {:>10}  ", elem.first, elem.second));
+    }
 }
