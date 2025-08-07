@@ -114,7 +114,10 @@ std::unordered_map<std::string, Verilog::Connection> Verilog::ExtractConnections
     std::vector<std::string> const vConnectionNames(ExtractPortNames(Utility::String::Strip(sNamesFromString, sConnectionType)));
     std::unordered_map<std::string, Verilog::Connection> umConnections;
     for (auto const &sName : vConnectionNames) {
-        if (Utility::String::ToLowerCase(sName) == "ck" || Utility::String::ToLowerCase(sName) == "clk") {
+        std::string const sLowerCaseSignalName(Utility::String::ToLowerCase(sName));
+        if (sLowerCaseSignalName == "ck" || 
+            sLowerCaseSignalName == "clk" || 
+            sLowerCaseSignalName == "gnd") {
             /////std::cout << "Skipping clock signal" << std::endl;
             continue;
         }
